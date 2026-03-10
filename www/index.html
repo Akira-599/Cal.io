@@ -1,0 +1,2812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f5f0e8" id="themeColorMeta">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Calendar</title>
+<style id="fontFaceStyle">
+/* System font stacks — work perfectly offline on Android/Linux */
+:root {
+  --font-body:    -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-mono:    'Courier New', Courier, monospace;
+}
+</style>
+<script>
+// Load Google Fonts asynchronously — non-blocking, progressive enhancement
+// If offline or slow, system fonts above are already rendering
+(function() {
+  var l = document.createElement('link');
+  l.rel  = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=Share+Tech+Mono&family=Playfair+Display:ital,wght@1,700&family=Space+Grotesk:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400;1,600&family=Syne:wght@400;700&display=swap';
+  l.media = 'print';
+  l.onload = function() {
+    l.media = 'all';
+    // Once loaded, switch to the designed fonts
+    var r = document.documentElement;
+    r.style.setProperty('--font-body',    "'DM Sans', -apple-system, 'Segoe UI', Roboto, sans-serif");
+    r.style.setProperty('--font-display', "'DM Serif Display', Georgia, serif");
+    r.style.setProperty('--font-mono',    "'Share Tech Mono', 'Courier New', monospace");
+  };
+  document.head.appendChild(l);
+})();
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── THEME VARIABLES (all transitions driven from here) ── */
+:root {
+  --bg:          #f5f0e8;
+  --ink:         #1a1714;
+  --ink-soft:    #5a5550;
+  --ink-ghost:   #c2bdb5;
+  --panel:       #1a1714;
+  --panel-glow:  rgba(201,98,47,0.12);
+  --accent:      #c9622f;
+  --accent-soft: rgba(201,98,47,0.12);
+  --sunday:      #c0392b;
+  --sunday-soft: rgba(192,57,43,0.10);
+  --holiday:     #2e7d52;
+  --holiday-soft:rgba(46,125,82,0.12);
+  --badge-h-bg:  rgba(46,125,82,0.20);
+  --badge-h-bd:  rgba(46,125,82,0.35);
+  --badge-h-tx:  #7ecfa0;
+  --badge-s-bg:  rgba(192,57,43,0.14);
+  --badge-s-bd:  rgba(192,57,43,0.28);
+  --badge-s-tx:  #f08080;
+  --panel-text:  #f5f0e8;
+  --panel-muted: rgba(255,255,255,0.35);
+  --panel-ghost: rgba(255,255,255,0.13);
+  --event-bg:    rgba(255,255,255,0.06);
+  --event-hbg:   rgba(255,255,255,0.10);
+  --hev-bg:      rgba(46,125,82,0.12);
+  --hev-hbg:     rgba(46,125,82,0.18);
+  --pill-active: rgba(255,255,255,0.12);
+  --dur: 0.38s;
+  --ease: cubic-bezier(0.23,1,0.32,1);
+  /* Theme transition: smooth 700ms across everything */
+  --theme-dur: 700ms;
+  --theme-ease: cubic-bezier(0.4,0,0.2,1);
+  /* Font variables — set by fontFaceStyle above, progressively enhanced */
+}
+
+/* ── PURE DARK MODE ── */
+:root.dark-mode {
+  --bg:          #000000;
+  --ink:         #f0ede8;
+  --ink-soft:    #888580;
+  --ink-ghost:   #2a2825;
+  --panel:       #0a0a0a;
+  --panel-glow:  rgba(201,98,47,0.10);
+  --accent:      #c9622f;
+  --accent-soft: rgba(201,98,47,0.10);
+  --sunday:      #d95f4b;
+  --sunday-soft: rgba(217,95,75,0.10);
+  --holiday:     #3a9e68;
+  --holiday-soft:rgba(58,158,104,0.10);
+  --badge-h-bg:  rgba(58,158,104,0.15);
+  --badge-h-bd:  rgba(58,158,104,0.28);
+  --badge-h-tx:  #6fcf97;
+  --badge-s-bg:  rgba(217,95,75,0.13);
+  --badge-s-bd:  rgba(217,95,75,0.26);
+  --badge-s-tx:  #e88a7a;
+  --panel-text:  #f0ede8;
+  --panel-muted: rgba(240,237,232,0.32);
+  --panel-ghost: rgba(240,237,232,0.07);
+  --event-bg:    rgba(255,255,255,0.04);
+  --event-hbg:   rgba(255,255,255,0.07);
+  --hev-bg:      rgba(58,158,104,0.10);
+  --hev-hbg:     rgba(58,158,104,0.15);
+  --pill-active: rgba(255,255,255,0.08);
+}
+
+/* ── DARK MODE TOGGLE (vertical pill) ── */
+.dark-toggle {
+  width: 46px; height: 26px;
+  border-radius: 100px;
+  background: var(--ink-ghost);
+  border: none; cursor: pointer;
+  position: relative;
+  padding: 3px;
+  flex-shrink: 0;
+  transition: background 0.4s cubic-bezier(0.4,0,0.2,1);
+  -webkit-tap-highlight-color: transparent;
+}
+.dark-toggle-thumb {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--bg);
+  position: absolute;
+  left: 3px; top: 3px;
+  display: flex; align-items: center; justify-content: center;
+  will-change: transform;
+  transition: transform 0.42s cubic-bezier(0.34,1.5,0.64,1),
+              background 0.35s ease;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+}
+:root.dark-mode .dark-toggle { background: var(--accent); }
+:root.dark-mode .dark-toggle-thumb {
+  transform: translateX(20px);
+  background: #000;
+}
+.dark-toggle-icon {
+  font-size: 10px; line-height: 1;
+  transition: opacity 0.2s ease;
+  user-select: none;
+}
+.icon-sun  { position: absolute; opacity: 1; }
+.icon-moon { position: absolute; opacity: 0; }
+:root.dark-mode .icon-sun  { opacity: 0; }
+:root.dark-mode .icon-moon { opacity: 1; }
+
+/* ── PERFORMANCE / GPU OPTIMIZATIONS ── */
+.cal-grid, .month-picker, .settings-panel, .modal, .year-picker-box {
+  will-change: transform, opacity;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.day-cell > span {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+/* Prevent layout thrash on scroll */
+.events-list, .settings-body, .year-wheel {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+/* Compositor-only animations — never trigger layout */
+.month-picker {
+  contain: layout style;
+}
+/* ── THEME / DARK MODE COLOR TRANSITIONS ──
+   Scoped selector list — NOT wildcard * — prevents firing on every DOM node
+   which is the primary cause of jitter on low-end Android during theme switch */
+body, .left, .right,
+.day-cell > span, .day-label,
+.modal, .settings-panel, .settings-header, .settings-body,
+.accordion-row, .accordion-trigger, .nested-accordion-row, .nested-accordion-trigger,
+.accordion-body, .nested-accordion-body,
+.event-item, .event-dots-btn, .event-menu, .event-menu-item,
+.month-pill, .year-tag, .theme-card, .font-item, .font-item-name, .font-item-preview,
+.holiday-badge, .sunday-badge, .coming-up-inner, .coming-up-text,
+.btn-cancel, .btn-add, .anim-toggle, .anim-pill, .anim-step,
+.dark-toggle, .dark-toggle-thumb, .gear-btn, .today-btn,
+.arrow-btn, .add-btn, .update-btn, .progress-fill, .progress-bar,
+.logo, .legend-dot, .selected-day-num, .selected-day-name,
+.events-title, .month-progress-label, .year-picker-box,
+.year-picker-title, .year-item, .year-picker-confirm, .year-picker-cancel,
+.accordion-label, .accordion-sublabel, .accordion-chevron, .accordion-icon,
+.no-events, .coming-up-dot, .modal h3, .modal input {
+  transition:
+    background-color var(--theme-dur) var(--theme-ease),
+    border-color     var(--theme-dur) var(--theme-ease),
+    color            var(--theme-dur) var(--theme-ease);
+}
+
+/* Ripple is always immune — runs its own JS animation */
+.ripple { transition: none !important; }
+
+/* On mobile: shorter theme transitions, no excess repaints */
+@media (max-width: 680px) {
+  body, .left, .right, .day-cell > span, .event-item,
+  .settings-panel, .accordion-body, .dark-toggle, .dark-toggle-thumb {
+    transition:
+      background-color 0.25s var(--theme-ease),
+      border-color     0.25s var(--theme-ease),
+      color            0.25s var(--theme-ease);
+  }
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  font-family: var(--font-body);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+/* Mobile: allow scroll */
+@media (max-width: 680px) {
+  html, body { overflow: auto; height: auto; min-height: 100%; }
+}
+
+/* ── GLOBAL TAP OPTIMIZATIONS ──
+   Eliminates 300ms tap delay on Android/iOS for all interactive elements */
+button, [role="button"], .day-cell, .year-tag,
+.month-pill, .theme-card, .font-item, .accordion-trigger,
+.nested-accordion-trigger, .dark-toggle, #monthTitleWrap {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+  transition: opacity var(--theme-dur) var(--theme-ease);
+}
+
+.app {
+  position: relative; z-index: 1;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+}
+
+/* ── TABLET: shrink right panel ── */
+@media (max-width: 900px) and (min-width: 681px) {
+  .app { grid-template-columns: 1fr 280px; }
+  .left { padding: 24px 20px 20px 28px; }
+  .right { padding: 32px 22px 24px; }
+  .selected-day-num { font-size: 52px !important; }
+}
+
+/* ── MOBILE: stack vertically ── */
+@media (max-width: 680px) {
+  .app {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .left {
+    padding: 24px 18px 20px !important;
+  }
+  .right {
+    border-radius: 28px 28px 0 0 !important;
+    padding: 28px 20px 36px !important;
+    min-height: 420px;
+  }
+  .selected-day-num { font-size: 52px !important; }
+  .top-bar { margin-bottom: 16px !important; }
+  .month-nav { margin-bottom: 12px !important; }
+  .legend { display: none !important; }
+  .day-cell { font-size: 11px !important; }
+  .day-header { font-size: 9px !important; }
+  .month-title-inner { font-size: clamp(22px, 7vw, 42px) !important; }
+
+  /* Disable hover states on touch — prevents flicker */
+  .day-cell:hover:not(.empty) > span { background: transparent; transform: none; }
+  .day-cell.is-sunday:hover > span   { background: transparent; }
+  .day-cell.is-holiday:hover > span  { background: transparent; }
+  .day-cell.selected:hover > span    { transform: scale(1.1); }
+  .arrow-btn:hover { background: transparent; border-color: var(--ink-ghost); color: var(--ink-soft); transform: none; }
+
+  /* Only animate tap, not hover */
+  .day-cell > span {
+    transition: transform 0.15s var(--ease), background 0.15s var(--ease);
+    width: clamp(24px, 9vw, 44px);
+    height: clamp(24px, 9vw, 44px);
+  }
+
+  /* Prevent browser scroll interference during taps */
+  .cal-grid-wrap { touch-action: pan-y; }
+  .day-cell      { touch-action: manipulation; }
+}
+
+/* Mid-size screens — tighten circle so it doesn't clip */
+@media (min-width: 681px) and (max-width: 1100px) {
+  .day-cell > span {
+    width: clamp(28px, 3.5vw, 46px);
+    height: clamp(28px, 3.5vw, 46px);
+  }
+}
+
+/* ── LEFT ── */
+.left {
+  display: flex; flex-direction: column;
+  padding: 36px 32px 28px 48px;
+  min-height: 0;
+  background: var(--bg);
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px; flex-shrink: 0;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 18px; letter-spacing: 0.02em; color: var(--ink); opacity: 0.9;
+}
+
+.top-right { display: flex; align-items: center; gap: 12px; }
+
+.legend {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 11px; color: var(--ink-soft); letter-spacing: 0.04em;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.legend-dot.holiday { background: var(--holiday); }
+.legend-dot.sunday  { background: var(--sunday); }
+
+.today-btn {
+  background: var(--ink); color: var(--bg); border: none;
+  border-radius: 100px; padding: 7px 18px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  cursor: pointer; letter-spacing: 0.03em;
+  transition: transform 0.2s var(--ease), opacity 0.2s, background var(--theme-dur) var(--theme-ease), color var(--theme-dur) var(--theme-ease);
+}
+.today-btn:hover { opacity: 0.75; transform: scale(0.97); }
+.today-btn:active { transform: scale(0.94); }
+
+/* ── GEAR BUTTON ── */
+.gear-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-ghost);
+  background: transparent;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-soft);
+  transition: border-color 0.22s, color 0.22s, transform 0.4s var(--ease), background var(--theme-dur) var(--theme-ease);
+  flex-shrink: 0;
+}
+.gear-btn:hover { border-color: var(--ink); color: var(--ink); }
+.gear-btn.open  { transform: rotate(60deg); border-color: var(--accent); color: var(--accent); }
+.gear-btn svg   { pointer-events: none; }
+
+.month-nav {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 20px; flex-shrink: 0;
+}
+
+.month-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 4.5vw, 60px); line-height: 1; color: var(--ink); overflow: hidden;
+}
+.month-title-inner { display: block; animation: slideUp var(--dur) var(--ease) both; }
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* Month title hover hint */
+.month-title { position: relative; }
+.month-title::after {
+  content: '';
+  position: absolute; bottom: -2px; left: 0;
+  width: 0; height: 1.5px;
+  background: var(--accent); border-radius: 2px;
+  transition: width 0.3s var(--ease);
+}
+.month-title:hover::after { width: 100%; }
+
+/* ── MONTH PICKER ── */
+.month-picker {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.97);
+  pointer-events: none;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  /* Fixed height so no layout jitter — content always occupies space */
+  height: 0;
+  overflow: hidden;
+  transition:
+    height   0.38s cubic-bezier(0.4,0,0.15,1),
+    opacity  0.28s ease,
+    transform 0.38s cubic-bezier(0.34,1.15,0.64,1),
+    margin-bottom 0.38s cubic-bezier(0.4,0,0.15,1);
+}
+.month-picker.open {
+  height: 136px;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+  margin-bottom: 14px;
+}
+.month-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  padding: 2px 0;
+}
+.month-pill {
+  padding: 9px 4px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 12px; font-weight: 400;
+  color: var(--ink-soft);
+  cursor: pointer; text-align: center;
+  letter-spacing: 0.02em;
+  /* Only opacity + transform — no layout properties */
+  opacity: 0;
+  transform: translateY(5px);
+  will-change: opacity, transform;
+  transition:
+    opacity      0.22s ease var(--mp-stagger, 0ms),
+    transform    0.28s cubic-bezier(0.34,1.2,0.64,1) var(--mp-stagger, 0ms),
+    background   0.15s ease,
+    color        0.15s ease,
+    border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.month-picker.open .month-pill {
+  opacity: 1;
+  transform: translateY(0);
+}
+.month-pill:hover { background: var(--accent-soft); color: var(--ink); border-color: var(--accent); }
+.month-pill.current-month { color: #5b9bd5; font-weight: 600; }
+.month-pill.active {
+  background: var(--ink); color: var(--bg);
+  border-color: var(--ink); font-weight: 500;
+}
+
+.year-tag {
+  font-size: 14px; font-weight: 300; color: var(--ink-soft);
+  letter-spacing: 0.08em; margin-bottom: 8px;
+  cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: color 0.2s, opacity 0.2s;
+}
+.year-tag:hover { color: var(--ink); }
+.year-tag::after {
+  content: '';
+  display: inline-block; width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid currentColor;
+  opacity: 0.5; margin-top: 1px;
+}
+
+/* ── YEAR PICKER WHEEL ── */
+.year-picker-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+.year-picker-overlay.open {
+  opacity: 1; pointer-events: all;
+}
+.year-picker-box {
+  background: var(--bg); border-radius: 24px;
+  width: 200px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+  overflow: hidden;
+  transform: scale(0.92) translateY(8px);
+  transition: transform 0.28s cubic-bezier(0.34,1.4,0.64,1), background var(--theme-dur) var(--theme-ease);
+}
+.year-picker-overlay.open .year-picker-box {
+  transform: scale(1) translateY(0);
+}
+.year-picker-title {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-soft);
+  padding: 16px 20px 10px; text-align: center;
+}
+.year-wheel {
+  height: 220px;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+.year-wheel::-webkit-scrollbar { display: none; }
+/* Fade top and bottom */
+.year-wheel-wrap {
+  position: relative;
+}
+.year-wheel-wrap::before,
+.year-wheel-wrap::after {
+  content: ''; position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none;
+  height: 80px;
+}
+.year-wheel-wrap::before {
+  top: 0;
+  background: linear-gradient(to bottom, var(--bg), transparent);
+}
+.year-wheel-wrap::after {
+  bottom: 0;
+  background: linear-gradient(to top, var(--bg), transparent);
+}
+/* Centre line highlight */
+.year-wheel-center {
+  position: absolute; top: 50%; left: 16px; right: 16px;
+  height: 44px; margin-top: -22px;
+  border-radius: 10px;
+  background: var(--ink); opacity: 0.07;
+  pointer-events: none; z-index: 1;
+}
+.year-item {
+  height: 44px;
+  scroll-snap-align: center;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 300; color: var(--ink);
+  cursor: pointer; letter-spacing: 0.02em;
+  transition: color 0.15s, font-weight 0.15s;
+}
+.year-item.active {
+  font-weight: 600; color: var(--accent);
+}
+/* Spacers so first/last can centre */
+.year-spacer { height: 88px; scroll-snap-align: none; }
+.year-picker-actions {
+  display: flex; gap: 8px; padding: 12px 16px 18px;
+}
+.year-picker-cancel, .year-picker-confirm {
+  flex: 1; padding: 10px 0; border-radius: 100px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  cursor: pointer; border: none; letter-spacing: 0.03em;
+}
+.year-picker-cancel {
+  background: transparent; border: 1.5px solid var(--ink-ghost);
+  color: var(--ink-soft);
+}
+.year-picker-confirm {
+  background: var(--ink); color: var(--bg);
+}
+.year-picker-confirm:hover { background: var(--accent); }
+
+.nav-arrows { display: flex; gap: 8px; margin-bottom: 6px; }
+
+.arrow-btn {
+  width: 36px; height: 36px;
+  border: 1.5px solid var(--ink-ghost); border-radius: 50%;
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-soft);
+  transition: background 0.22s, border-color 0.22s, color 0.22s, transform 0.22s var(--ease);
+}
+.arrow-btn:hover { background: var(--ink); border-color: var(--ink); color: var(--bg); transform: scale(1.08); }
+.arrow-btn:active { transform: scale(0.95); }
+.arrow-btn svg { pointer-events: none; }
+
+.home-btn { color: var(--ink-ghost); }
+.home-btn.away { color: var(--accent); border-color: var(--accent); animation: homePulse 2s ease-in-out infinite; }
+.home-btn.away:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); animation: none; }
+@keyframes homePulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%       { box-shadow: 0 0 0 4px var(--accent-soft); }
+}
+
+/* ── GRID ── */
+.cal-grid-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  flex: 1; min-height: 0;
+  gap: 2px 0;
+}
+
+.day-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-ghost);
+  text-align: center; padding-bottom: 10px; align-self: end;
+}
+.day-label.sun-label { color: var(--sunday); opacity: 0.8; }
+
+.day-cell {
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 50%;
+  font-size: 13px; font-weight: 400; color: var(--ink);
+  position: relative; user-select: none; width: 100%;
+  overflow: visible;
+}
+/* No more padding-bottom hack — span sizes itself from actual cell dimensions */
+.day-cell > span {
+  display: flex; align-items: center; justify-content: center;
+  /* Use the smaller dimension of the cell to guarantee a true circle */
+  width: clamp(28px, 4.5vw, 52px);
+  height: clamp(28px, 4.5vw, 52px);
+  border-radius: 50%;
+  flex-shrink: 0;
+  will-change: transform;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.18s var(--ease), box-shadow 0.18s;
+}
+
+.day-cell:hover:not(.empty) > span       { background: var(--accent-soft); transform: scale(1.12); }
+.day-cell.is-sunday:hover > span         { background: var(--sunday-soft); }
+.day-cell.is-holiday:hover > span        { background: var(--holiday-soft); }
+.day-cell.selected:hover > span          { transform: scale(1.1); }
+.day-cell:active:not(.empty) > span      { transform: scale(0.92); }
+
+.day-cell.other-month > span             { color: var(--ink-ghost); }
+.day-cell.other-month.is-sunday > span   { color: var(--sunday); opacity: 0.25; }
+.day-cell.is-sunday:not(.other-month) > span { color: var(--sunday); }
+.day-cell.is-holiday:not(.other-month) > span { color: var(--holiday); font-weight: 600; }
+.day-cell.is-sunday.is-holiday:not(.other-month) > span { color: var(--holiday); }
+.day-cell.today > span { color: #5b9bd5 !important; font-weight: 700; font-size: 16px; }
+.day-cell.selected > span {
+  background: var(--ink) !important;
+  color: var(--bg) !important;
+  font-weight: 600; transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+}
+
+.day-cell.is-holiday:not(.other-month) > span::after {
+  content: ''; position: absolute; bottom: 3px;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--holiday);
+}
+.day-cell.is-holiday.selected > span::after  { background: rgba(255,255,255,0.5) !important; }
+.day-cell.is-holiday.today > span::after     { background: #5b9bd5; }
+
+.day-cell.has-event > span::before {
+  content: ''; position: absolute; top: 4px; right: 4px;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0.9; z-index: 1;
+}
+.day-cell.selected.has-event > span::before { background: var(--bg); opacity: 0.7; }
+
+.day-cell.animate-in { animation: cellPop 0.22s var(--ease) both; }
+@keyframes cellPop {
+  from { opacity: 0; transform: scale(0.82); }
+  to   { opacity: 1; transform: scale(1); }
+}
+/* On mobile: skip staggered pop */
+@media (max-width: 680px) {
+  .day-cell.animate-in { animation: none; }
+}
+
+/* ── RIPPLE ── */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 10;
+  transform: scale(0);
+  opacity: 0;
+}
+@keyframes rippleAnim {
+  0%   { transform: scale(0);   opacity: 0.35; }
+  65%  { transform: scale(2.8); opacity: 0.14; }
+  100% { transform: scale(3.5); opacity: 0;    }
+}
+.day-cell.is-sunday  .ripple { background: var(--sunday);  }
+.day-cell.is-holiday .ripple { background: var(--holiday); }
+
+/* ── SWIPE SLIDE TRANSITIONS ── */
+.cal-grid-wrap { overflow: hidden; }
+.cal-grid { will-change: transform, opacity; contain: layout style; }
+
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translate3d(40px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes slideInFromLeft {
+  from { opacity: 0; transform: translate3d(-40px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes slideOutToLeft {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to   { opacity: 0; transform: translate3d(-40px, 0, 0); }
+}
+@keyframes slideOutToRight {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to   { opacity: 0; transform: translate3d(40px, 0, 0); }
+}
+
+.cal-grid.slide-in-right  { animation: slideInFromRight 0.32s cubic-bezier(0.22,1,0.36,1) both; }
+.cal-grid.slide-in-left   { animation: slideInFromLeft  0.32s cubic-bezier(0.22,1,0.36,1) both; }
+.cal-grid.slide-out-left  { animation: slideOutToLeft   0.18s cubic-bezier(0.4,0,1,1) both; }
+.cal-grid.slide-out-right { animation: slideOutToRight  0.18s cubic-bezier(0.4,0,1,1) both; }
+
+/* ── RIGHT PANEL ── */
+.right {
+  background: var(--panel); border-radius: 28px 0 0 28px;
+  padding: 44px 32px 36px;
+  display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+  overflow-y: auto;
+}
+.right::before {
+  content: ''; position: absolute; top: -80px; right: -80px;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: var(--panel-glow); filter: blur(60px); pointer-events: none;
+}
+@media (max-width: 680px) {
+  .right::before { display: none; }
+}
+
+.selected-date-display { margin-bottom: 24px; flex-shrink: 0; }
+
+.selected-day-num {
+  font-family: var(--font-display); font-size: 68px; color: var(--panel-text);
+  line-height: 1; letter-spacing: -0.02em;
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.34,1.2,0.64,1), color var(--theme-dur) var(--theme-ease);
+}
+.selected-day-num.switching {
+  opacity: 0; transform: translateY(4px);
+}
+.selected-day-name {
+  font-size: 12px; font-weight: 400; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--panel-muted); margin-top: 4px;
+  transition: color var(--theme-dur) var(--theme-ease), opacity 0.18s ease;
+}
+.selected-day-name.switching { opacity: 0; }
+
+.badge-area { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+
+.holiday-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--badge-h-bg); border: 1px solid var(--badge-h-bd);
+  border-radius: 100px; padding: 5px 12px;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.05em; color: var(--badge-h-tx);
+  animation: fadeIn 0.3s ease both;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.holiday-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--badge-h-tx); flex-shrink: 0; }
+
+.sunday-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--badge-s-bg); border: 1px solid var(--badge-s-bd);
+  border-radius: 100px; padding: 5px 12px;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.05em; color: var(--badge-s-tx);
+  animation: fadeIn 0.3s ease both;
+}
+.sunday-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--badge-s-tx); flex-shrink: 0; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── WOBBLE EFFECT (desktop pointer only) ── */
+@keyframes wobble {
+  0%   { transform: rotate(0deg)    scale(1); }
+  15%  { transform: rotate(-4deg)   scale(1.1); }
+  30%  { transform: rotate(3.5deg)  scale(1.08); }
+  45%  { transform: rotate(-2.5deg) scale(1.06); }
+  60%  { transform: rotate(1.5deg)  scale(1.03); }
+  75%  { transform: rotate(-0.8deg) scale(1.01); }
+  90%  { transform: rotate(0.4deg)  scale(1); }
+  100% { transform: rotate(0deg)    scale(1); }
+}
+@keyframes wobbleSpan {
+  0%   { transform: rotate(0deg)    scale(1); }
+  15%  { transform: rotate(-5deg)   scale(1.2); }
+  30%  { transform: rotate(4deg)    scale(1.17); }
+  45%  { transform: rotate(-2.8deg) scale(1.14); }
+  60%  { transform: rotate(1.8deg)  scale(1.1); }
+  75%  { transform: rotate(-0.9deg) scale(1.05); }
+  90%  { transform: rotate(0.4deg)  scale(1.02); }
+  100% { transform: rotate(0deg)    scale(1); }
+}
+@keyframes wobbleBig {
+  0%   { transform: rotate(0deg)    scale(1); }
+  12%  { transform: rotate(-7deg)   scale(1.18); }
+  26%  { transform: rotate(6deg)    scale(1.15); }
+  40%  { transform: rotate(-4deg)   scale(1.11); }
+  54%  { transform: rotate(2.5deg)  scale(1.07); }
+  68%  { transform: rotate(-1.2deg) scale(1.03); }
+  82%  { transform: rotate(0.6deg)  scale(1.01); }
+  100% { transform: rotate(0deg)    scale(1); }
+}
+/* Applied via JS only on devices with a real pointer */
+@media (hover: hover) and (pointer: fine) {
+  .wobble-target:hover { animation: wobble 0.55s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+  .wobble-big:hover    { animation: wobbleBig 0.6s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+  .day-cell:not(.empty):not(.selected):hover > span {
+    animation: wobbleSpan 0.55s cubic-bezier(0.36,0.07,0.19,0.97) both !important;
+    transform: none;
+  }
+}
+
+/* ── MONTH PROGRESS BAR ── */
+.month-progress {
+  margin-bottom: 28px; flex-shrink: 0;
+}
+.month-progress-label {
+  font-size: 10px; font-weight: 400; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--panel-muted);
+  margin-bottom: 7px; opacity: 0.7;
+}
+.month-progress-track {
+  height: 2px; border-radius: 2px;
+  background: var(--panel-ghost);
+  overflow: hidden;
+}
+.month-progress-fill {
+  height: 100%; border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.55;
+  width: 0%;
+  transition: width 0.9s cubic-bezier(0.23, 1, 0.32, 1),
+              background-color var(--theme-dur) var(--theme-ease);
+}
+
+/* ── COMING UP HINT ── */
+.coming-up {
+  margin-top: 10px; flex-shrink: 0;
+  min-height: 0;
+}
+.coming-up-inner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--panel-ghost);
+  animation: fadeUp 0.4s cubic-bezier(0.23,1,0.32,1) both;
+}
+.coming-up-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--holiday); flex-shrink: 0; opacity: 0.8;
+}
+.coming-up-text {
+  font-size: 11px; font-weight: 400; color: var(--panel-muted);
+  line-height: 1.4;
+}
+.coming-up-text strong {
+  color: var(--panel-text); font-weight: 500; opacity: 0.75;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.events-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; margin-top: 16px; flex-shrink: 0;
+}
+.events-title {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--panel-muted);
+  transition: color var(--theme-dur) var(--theme-ease);
+}
+
+.add-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.2); background: transparent;
+  color: var(--panel-text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; line-height: 1;
+  transition: background 0.2s var(--ease), border-color 0.2s, color 0.2s, transform 0.2s var(--ease);
+}
+.add-btn:hover { background: var(--accent); border-color: var(--accent); transform: scale(1.1) rotate(90deg); }
+
+.events-list {
+  flex: 1; display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; scrollbar-width: none; min-height: 0;
+}
+.events-list::-webkit-scrollbar { display: none; }
+
+.event-item {
+  border-radius: 14px; padding: 12px 14px;
+  border-left: 2.5px solid var(--accent);
+  background: var(--event-bg);
+  cursor: default; flex-shrink: 0;
+  animation: eventSlide 0.32s var(--ease) both;
+  transition: background 0.18s, transform 0.18s var(--ease), border-color var(--theme-dur) var(--theme-ease);
+}
+.event-item.holiday-event { border-left-color: var(--badge-h-tx); background: var(--hev-bg); }
+.event-item:hover { background: var(--event-hbg); }
+.event-item.holiday-event:hover { background: var(--hev-hbg); }
+
+/* User event wrapper */
+.event-item-wrap {
+  position: relative; flex-shrink: 0;
+  display: flex; align-items: stretch; gap: 0;
+}
+.event-item-wrap .event-item {
+  flex: 1; margin: 0; border-radius: 14px 0 0 14px;
+  border-left: 2.5px solid var(--accent);
+  animation: eventSlide 0.32s var(--ease) both;
+}
+
+/* Three-dot button */
+.event-dots-btn {
+  flex-shrink: 0; width: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--event-bg); border: none; cursor: pointer;
+  border-radius: 0 14px 14px 0;
+  border-left: none;
+  border-right: none;
+  color: var(--panel-muted);
+  transition: background 0.18s, color 0.18s, border-color var(--theme-dur) var(--theme-ease);
+  animation: eventSlide 0.32s var(--ease) both;
+  position: relative;
+}
+.event-dots-btn:hover { background: var(--event-hbg); color: var(--panel-text); }
+.event-dots-btn.active { background: var(--event-hbg); color: var(--panel-text); }
+
+/* Dropdown menu */
+.event-menu {
+  position: absolute; right: 0; top: calc(100% + 6px);
+  background: var(--panel); border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+  overflow: hidden; z-index: 100;
+  min-width: 130px;
+  transform-origin: top right;
+  transform: scale(0.85) translateY(-8px);
+  opacity: 0; pointer-events: none;
+  transition: transform 0.28s cubic-bezier(0.34,1.5,0.64,1), opacity 0.2s ease;
+}
+.event-menu.open {
+  transform: scale(1) translateY(0);
+  opacity: 1; pointer-events: all;
+}
+.event-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px;
+  font-size: 13px; font-weight: 400; color: var(--panel-text);
+  cursor: pointer; border: none; background: transparent;
+  width: 100%; text-align: left; font-family: var(--font-body);
+  transition: background 0.15s;
+}
+.event-menu-item:hover { background: var(--panel-ghost); }
+.event-menu-item.delete { color: #e57373; }
+.event-menu-item svg { opacity: 0.7; flex-shrink: 0; }
+
+/* Delete collapse animation */
+.event-item-wrap.deleting {
+  animation: deleteCollapse 0.3s cubic-bezier(0.4,0,1,1) forwards;
+  overflow: hidden;
+}
+@keyframes deleteCollapse {
+  0%   { max-height: 80px; opacity: 1; }
+  100% { max-height: 0;    opacity: 0; }
+}
+
+@keyframes eventSlide {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.event-type { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; margin-bottom: 3px; }
+.event-type.nat { color: #f4a261; }
+.event-type.rel { color: #81c784; }
+.event-type.reg { color: #80cbc4; }
+.event-time { font-size: 11px; letter-spacing: 0.06em; color: var(--accent); font-weight: 500; margin-bottom: 3px; }
+.event-name { font-size: 13px; color: var(--panel-text); font-weight: 400; line-height: 1.35; }
+
+.no-events {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--panel-ghost); gap: 10px; text-align: center;
+  transition: color var(--theme-dur) var(--theme-ease);
+}
+.no-events p { font-size: 12px; font-weight: 300; letter-spacing: 0.05em; }
+
+.view-pills {
+  display: flex; gap: 4px; background: rgba(255,255,255,0.08);
+  border-radius: 100px; padding: 3px; margin-top: 20px; flex-shrink: 0;
+}
+.pill {
+  flex: 1; padding: 6px 0; border: none; border-radius: 100px; background: transparent;
+  font-family: var(--font-body); font-size: 12px; letter-spacing: 0.05em;
+  color: var(--panel-muted); cursor: pointer;
+  transition: background 0.22s var(--ease), color 0.22s;
+}
+.pill.active { background: var(--pill-active); color: var(--panel-text); }
+
+/* ── UPDATE BUTTON ── */
+.update-btn {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin-top: 12px; width: 100%;
+  padding: 9px 0; border: 1px solid var(--panel-ghost);
+  border-radius: 100px; background: transparent;
+  font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em;
+  color: var(--panel-muted); cursor: pointer;
+  transition: background 0.22s var(--ease), color 0.22s, border-color 0.22s, opacity 0.22s;
+}
+.update-btn:hover { background: var(--panel-ghost); color: var(--panel-text); }
+.update-btn:active { opacity: 0.7; transform: scale(0.98); }
+.update-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.update-btn .spin { animation: spinIcon 0.9s linear infinite; }
+@keyframes spinIcon { to { transform: rotate(360deg); } }
+
+.update-status {
+  font-size: 10px; letter-spacing: 0.06em; text-align: center;
+  color: var(--panel-muted); margin-top: 7px; min-height: 14px;
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.update-status.visible { opacity: 0.7; }
+
+/* ── SETTINGS PANEL ── */
+.settings-overlay {
+  position: fixed; inset: 0;
+  z-index: 200;
+  pointer-events: none;
+}
+.settings-overlay.open { pointer-events: all; }
+
+.settings-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0);
+  transition: background 0.3s;
+}
+.settings-overlay.open .settings-backdrop { background: rgba(0,0,0,0.18); }
+
+.settings-panel {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 320px;
+  max-height: calc(100vh - 48px);
+  background: var(--bg);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  border: 1px solid var(--ink-ghost);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  transform: translateY(-12px) scale(0.96);
+  opacity: 0;
+  transition: transform 0.38s cubic-bezier(0.34,1.25,0.64,1), opacity 0.28s ease, background var(--theme-dur) var(--theme-ease), border-color var(--theme-dur) var(--theme-ease), box-shadow var(--theme-dur) var(--theme-ease);
+  pointer-events: none;
+}
+.settings-overlay.open .settings-panel {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: all;
+}
+
+.settings-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s;
+  position: relative;
+}
+/* Show scrollbar only when hovering or actively scrolling */
+.settings-body:hover,
+.settings-body.is-scrolling {
+  scrollbar-color: var(--ink-ghost) transparent;
+}
+/* WebKit custom scrollbar — minimal 3px track */
+.settings-body::-webkit-scrollbar { width: 4px; }
+.settings-body::-webkit-scrollbar-track { background: transparent; }
+.settings-body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+.settings-body:hover::-webkit-scrollbar-thumb,
+.settings-body.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--ink-ghost);
+}
+/* Subtle fade at bottom when scrollable */
+.settings-panel::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 32px;
+  background: linear-gradient(to top, var(--bg), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease, background var(--theme-dur) var(--theme-ease);
+  border-radius: 0 0 20px 20px;
+  z-index: 2;
+}
+.settings-panel.can-scroll::after { opacity: 1; }
+
+.settings-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--ink-ghost);
+}
+.settings-title {
+  font-size: 13px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.settings-close {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--ink-ghost); background: transparent;
+  cursor: pointer; color: var(--ink-soft);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; line-height: 1;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.18s;
+}
+.settings-close:hover { background: var(--ink); border-color: var(--ink); color: var(--bg); transform: scale(1.08); }
+
+.settings-section { padding: 8px 0 0; }
+
+/* ── ACCORDION ROW ── */
+.accordion-row {
+  border-bottom: 1px solid var(--ink-ghost);
+}
+.accordion-row:first-child { border-top: 1px solid var(--ink-ghost); }
+
+/* ── NESTED ACCORDION ── */
+.nested-accordion-row {
+  border-radius: 12px;
+  border: 1px solid var(--ink-ghost);
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: border-color var(--theme-dur) var(--theme-ease);
+}
+.nested-accordion-row:last-child { margin-bottom: 0; }
+
+.nested-accordion-trigger {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  background: transparent; border: none; cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.18s;
+}
+.nested-accordion-trigger:hover { background: rgba(0,0,0,0.03); }
+
+.nested-accordion-body { padding: 0 12px; }
+.nested-accordion-row.open .nested-accordion-body { padding: 0 12px 12px; }
+
+.accordion-icon-sm {
+  width: 24px; height: 24px; border-radius: 6px;
+}
+
+/* ── ANIMATION STRENGTH TOGGLE ── */
+.anim-toggle-wrap { padding: 4px 0 6px; }
+.anim-toggle {
+  position: relative;
+  display: flex;
+  background: var(--accent-soft);
+  border-radius: 100px;
+  padding: 3px;
+  gap: 0;
+}
+.anim-step {
+  flex: 1; position: relative; z-index: 1;
+  padding: 7px 0; border: none; background: transparent;
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  color: var(--ink-soft); cursor: pointer; border-radius: 100px;
+  transition: color 0.3s ease;
+  letter-spacing: 0.03em;
+}
+.anim-step.active { color: var(--ink); }
+.anim-pill {
+  position: absolute; top: 3px; bottom: 3px;
+  width: calc(33.333% - 2px);
+  background: var(--bg);
+  border-radius: 100px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.10);
+  transition: transform 0.4s cubic-bezier(0.34,1.3,0.64,1),
+              background var(--theme-dur) var(--theme-ease);
+  pointer-events: none;
+  left: 3px;
+}
+
+/* ── FONT LIST ── */
+.font-list {
+  display: flex; flex-direction: column; gap: 6px; padding: 4px 0 6px;
+}
+.font-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px; border-radius: 12px;
+  border: 1.5px solid var(--ink-ghost);
+  cursor: pointer; background: transparent;
+  transition: border-color 0.22s, background 0.22s;
+  width: 100%; text-align: left;
+}
+.font-item:hover { background: var(--accent-soft); border-color: var(--accent); }
+.font-item.active { border-color: var(--accent); background: var(--accent-soft); }
+.font-item-left { display: flex; flex-direction: column; gap: 2px; }
+.font-item-name { font-size: 11px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase; }
+.font-item-preview { font-size: 16px; color: var(--ink); line-height: 1.2; }
+.font-check {
+  width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s;
+  font-size: 9px; color: #fff; font-weight: 700;
+}
+.font-item.active .font-check { opacity: 1; }
+
+.accordion-trigger {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 20px;
+  background: transparent; border: none; cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.18s;
+}
+.accordion-trigger:hover { background: rgba(0,0,0,0.03); }
+
+.accordion-trigger-left { display: flex; align-items: center; gap: 10px; }
+
+.accordion-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-soft);
+  transition: background var(--theme-dur) var(--theme-ease);
+}
+.accordion-icon svg { color: var(--accent); transition: color var(--theme-dur) var(--theme-ease); }
+
+.accordion-label {
+  font-size: 13px; font-weight: 500; color: var(--ink);
+  transition: color var(--theme-dur) var(--theme-ease);
+}
+.accordion-sublabel {
+  font-size: 11px; color: var(--ink-ghost);
+  transition: color var(--theme-dur) var(--theme-ease);
+}
+
+.accordion-chevron {
+  color: var(--ink-ghost);
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), color var(--theme-dur) var(--theme-ease);
+  flex-shrink: 0;
+}
+.accordion-row.open > .accordion-trigger > .accordion-chevron { transform: rotate(180deg); }
+.nested-accordion-row.open > .nested-accordion-trigger > .accordion-chevron { transform: rotate(180deg); }
+
+/* ── TILE CONTAINER ── */
+.accordion-body {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.5s cubic-bezier(0.4,0,0.15,1),
+    padding    0.4s cubic-bezier(0.4,0,0.2,1),
+    opacity    0.3s ease;
+  padding: 0 16px;
+}
+.accordion-row.open > .accordion-body {
+  max-height: 600px;
+  padding: 0 16px 16px;
+  opacity: 1;
+}
+.nested-accordion-row.open > .accordion-body {
+  max-height: 500px;
+  padding: 0 12px 12px;
+  opacity: 1;
+}
+
+/* ── THEME GRID ── */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.theme-card {
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  position: relative;
+  /* Base state for tile-in animation */
+  opacity: 0;
+  transform: rotateX(-90deg) scale(0.8);
+  transform-origin: top center;
+  transition:
+    border-color 0.22s,
+    transform 0.22s var(--ease),
+    box-shadow 0.22s,
+    opacity 0.22s;
+}
+
+/* When accordion opens, cards animate in with stagger (set via JS inline style) */
+.nested-accordion-row.open .theme-card {
+  opacity: 1;
+  transform: rotateX(0deg) scale(1);
+  transition:
+    opacity 0.4s var(--ease) var(--stagger, 0ms),
+    transform 0.5s cubic-bezier(0.34,1.4,0.64,1) var(--stagger, 0ms),
+    border-color 0.22s,
+    box-shadow 0.22s;
+}
+
+/* Hover / active states only when visible */
+.nested-accordion-row.open .theme-card:hover {
+  transform: rotateX(0deg) scale(1) translateY(-4px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.16);
+}
+.theme-card.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.theme-card.active::after {
+  content: '✓';
+  position: absolute; top: 5px; right: 5px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 16px; text-align: center;
+}
+.nested-accordion-row.open .theme-card.active:hover {
+  transform: rotateX(0deg) scale(1.02) translateY(-3px);
+}
+
+.theme-preview {
+  height: 60px;
+  display: grid;
+  grid-template-columns: 1fr 40%;
+  overflow: hidden;
+}
+.tp-left { padding: 8px 6px; display: flex; flex-direction: column; gap: 3px; }
+
+.tp-bar { height: 5px; border-radius: 3px; opacity: 0.7; }
+.tp-bar-sm { width: 55%; }
+.tp-bar-lg { width: 85%; }
+.tp-dot-row { display: flex; gap: 3px; margin-top: 4px; }
+.tp-dot { width: 5px; height: 5px; border-radius: 50%; opacity: 0.55; }
+
+.theme-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.06em;
+  text-align: center; padding: 5px 4px 6px;
+}
+
+/* ── ADD EVENT MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(26,23,20,0.6);
+  z-index: 300; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.32s cubic-bezier(0.4,0,0.2,1);
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--bg); border-radius: 24px; padding: 36px; width: 360px;
+  transform: translateY(24px) scale(0.95);
+  transition: transform 0.42s cubic-bezier(0.34,1.3,0.64,1), opacity 0.32s ease, background var(--theme-dur) var(--theme-ease);
+  box-shadow: 0 32px 80px rgba(26,23,20,0.3);
+  opacity: 0;
+}
+.modal-overlay.open .modal { transform: translateY(0) scale(1); opacity: 1; }
+
+.modal h3 { font-family: var(--font-display); font-size: 26px; margin-bottom: 24px; color: var(--ink); }
+
+.modal input {
+  width: 100%; border: none; border-bottom: 1.5px solid var(--ink-ghost);
+  background: transparent; padding: 10px 0;
+  font-family: var(--font-body); font-size: 15px; color: var(--ink);
+  outline: none; margin-bottom: 20px; transition: border-color 0.2s;
+}
+.modal input:focus { border-color: var(--accent); }
+.modal input::placeholder { color: var(--ink-ghost); }
+
+.modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+.btn-cancel {
+  flex: 1; padding: 12px; border: 1.5px solid var(--ink-ghost); border-radius: 100px;
+  background: transparent; font-family: var(--font-body); font-size: 14px;
+  cursor: pointer; color: var(--ink-soft); transition: all 0.2s;
+}
+.btn-cancel:hover { border-color: var(--ink); color: var(--ink); }
+
+.btn-add {
+  flex: 1; padding: 12px; border: none; border-radius: 100px;
+  background: var(--ink); font-family: var(--font-body); font-size: 14px;
+  font-weight: 500; cursor: pointer; color: var(--bg);
+  transition: background 0.2s var(--ease), transform 0.2s var(--ease), color var(--theme-dur) var(--theme-ease);
+}
+.btn-add:hover { background: var(--accent); transform: scale(1.03); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LEFT -->
+  <div class="left">
+    <div class="top-bar">
+      <div class="logo">Cal.</div>
+      <div class="top-right">
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot holiday"></div>Holiday</div>
+          <div class="legend-item"><div class="legend-dot sunday"></div>Sunday</div>
+        </div>
+        <button class="today-btn" onclick="goToday()">Today</button>
+        <button class="dark-toggle wobble-target" id="darkToggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+          <div class="dark-toggle-thumb">
+            <span class="dark-toggle-icon icon-sun">☀︎</span>
+            <span class="dark-toggle-icon icon-moon">☽</span>
+          </div>
+        </button>
+        <button class="gear-btn" id="gearBtn" onclick="toggleSettings()" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="month-nav">
+      <div>
+        <div class="year-tag" id="yearTag" onclick="openYearPicker()">2026</div>
+        <div class="month-title wobble-big" id="monthTitleWrap" onclick="toggleMonthPicker()" style="cursor:pointer;user-select:none"><span class="month-title-inner" id="monthTitle">March</span></div>
+      </div>
+      <div class="nav-arrows">
+        <button class="arrow-btn" onclick="changeMonth(-1)">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="9,2 4,7 9,12"/></svg>
+        </button>
+        <button class="arrow-btn home-btn" id="homeBtn" onclick="goToday()" title="Go to current month">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <circle cx="12" cy="12" r="4"/>
+          </svg>
+        </button>
+        <button class="arrow-btn" onclick="changeMonth(1)">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="5,2 10,7 5,12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Month Picker -->
+    <div class="month-picker" id="monthPicker">
+      <div class="month-picker-grid" id="monthPickerGrid"></div>
+    </div>
+
+    <div class="cal-grid-wrap">
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="month-progress" id="monthProgress">
+      <div class="month-progress-label" id="monthProgressLabel"></div>
+      <div class="month-progress-track">
+        <div class="month-progress-fill" id="monthProgressFill"></div>
+      </div>
+    </div>
+    <div class="selected-date-display">
+      <div class="selected-day-num" id="selDayNum">9</div>
+      <div class="selected-day-name" id="selDayName">Monday · March 2026</div>
+      <div class="badge-area" id="badgeArea"></div>
+    </div>
+    <div class="events-header">
+      <div class="events-title">Events</div>
+      <button class="add-btn" onclick="openModal()">+</button>
+    </div>
+    <div class="events-list" id="eventsList"></div>
+    <div class="coming-up" id="comingUp"></div>
+    <div class="view-pills">
+      <button class="pill active">Month</button>
+      <button class="pill">Week</button>
+      <button class="pill">Day</button>
+    </div>
+    <button class="update-btn" id="updateBtn" onclick="fetchHolidays()">
+      <svg id="updateIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.36-3.36L23 10M1 14l5.13 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      <span id="updateLabel">Update holidays</span>
+    </button>
+    <div class="update-status" id="updateStatus"></div>
+  </div>
+</div>
+
+<!-- YEAR PICKER -->
+<div class="year-picker-overlay" id="yearPickerOverlay" onclick="onYearOverlayClick(event)">
+  <div class="year-picker-box">
+    <div class="year-picker-title">Select Year</div>
+    <div class="year-wheel-wrap">
+      <div class="year-wheel-center"></div>
+      <div class="year-wheel" id="yearWheel"></div>
+    </div>
+    <div class="year-picker-actions">
+      <button class="year-picker-cancel" onclick="closeYearPicker()">Cancel</button>
+      <button class="year-picker-confirm" onclick="confirmYear()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS OVERLAY -->
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-backdrop" onclick="closeSettings()"></div>
+  <div class="settings-panel">
+    <div class="settings-header">
+      <div class="settings-title">Settings</div>
+      <button class="settings-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="settings-body" id="settingsBody">
+    <div class="settings-section">
+      <div class="accordion-row" id="uiRow">
+        <button class="accordion-trigger" onclick="toggleAccordion('uiRow')">
+          <div class="accordion-trigger-left">
+            <div class="accordion-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+            </div>
+            <div>
+              <div class="accordion-label">UI &amp; Appearance</div>
+              <div class="accordion-sublabel">Themes, animations</div>
+            </div>
+          </div>
+          <svg class="accordion-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polyline points="2,4 7,10 12,4"/>
+          </svg>
+        </button>
+        <div class="accordion-body">
+          <!-- Themes nested tile -->
+          <div class="nested-accordion-row" id="themesRow">
+            <button class="nested-accordion-trigger" onclick="toggleAccordion('themesRow')">
+              <div class="accordion-trigger-left">
+                <div class="accordion-icon accordion-icon-sm">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="accordion-label" style="font-size:12px">Themes</div>
+                  <div class="accordion-sublabel" id="activeThemeLabel">Parchment</div>
+                </div>
+              </div>
+              <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="2,4 7,10 12,4"/>
+              </svg>
+            </button>
+            <div class="accordion-body nested-accordion-body">
+              <div class="theme-grid" id="themeGrid"></div>
+            </div>
+          </div>
+
+          <!-- Animation strength nested tile -->
+          <div class="nested-accordion-row" id="animRow">
+            <button class="nested-accordion-trigger" onclick="toggleAccordion('animRow')">
+              <div class="accordion-trigger-left">
+                <div class="accordion-icon accordion-icon-sm">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="accordion-label" style="font-size:12px">Animation Strength</div>
+                  <div class="accordion-sublabel" id="animStrengthLabel">Medium</div>
+                </div>
+              </div>
+              <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="2,4 7,10 12,4"/>
+              </svg>
+            </button>
+            <div class="accordion-body nested-accordion-body">
+              <div class="anim-toggle-wrap">
+                <div class="anim-toggle" id="animToggle">
+                  <button class="anim-step" data-level="low"    onclick="setAnimStrength('low')">Low</button>
+                  <button class="anim-step" data-level="medium" onclick="setAnimStrength('medium')">Medium</button>
+                  <button class="anim-step" data-level="high"   onclick="setAnimStrength('high')">High</button>
+                  <div class="anim-pill" id="animPill"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fonts nested tile -->
+          <div class="nested-accordion-row" id="fontsRow">
+            <button class="nested-accordion-trigger" onclick="toggleAccordion('fontsRow')">
+              <div class="accordion-trigger-left">
+                <div class="accordion-icon accordion-icon-sm">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="accordion-label" style="font-size:12px">Fonts</div>
+                  <div class="accordion-sublabel" id="activeFontLabel">Default</div>
+                </div>
+              </div>
+              <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="2,4 7,10 12,4"/>
+              </svg>
+            </button>
+            <div class="accordion-body nested-accordion-body">
+              <div class="font-list" id="fontList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /settings-body -->
+  </div>
+</div>
+
+<!-- ADD EVENT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>New Event</h3>
+    <input type="text" id="eventNameInput" placeholder="Event name" maxlength="60"/>
+    <input type="time" id="eventTimeInput"/>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-add" id="modalSaveBtn" onclick="saveEvent()">Add Event</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DARK MODE VARS ── separate from theme vars, applied on top
+const DARK_VARS = {
+  '--bg':          '#000000',
+  '--ink':         '#f0ede8',
+  '--ink-soft':    '#888580',
+  '--ink-ghost':   '#2a2825',
+  '--panel':       '#0a0a0a',
+  '--panel-glow':  'rgba(201,98,47,0.10)',
+  '--accent-soft': 'rgba(201,98,47,0.10)',
+  '--sunday-soft': 'rgba(217,95,75,0.10)',
+  '--holiday-soft':'rgba(58,158,104,0.10)',
+  '--badge-h-bg':  'rgba(58,158,104,0.15)',
+  '--badge-h-bd':  'rgba(58,158,104,0.28)',
+  '--badge-h-tx':  '#6fcf97',
+  '--badge-s-bg':  'rgba(217,95,75,0.13)',
+  '--badge-s-bd':  'rgba(217,95,75,0.26)',
+  '--badge-s-tx':  '#e88a7a',
+  '--panel-text':  '#f0ede8',
+  '--panel-muted': 'rgba(240,237,232,0.32)',
+  '--panel-ghost': 'rgba(240,237,232,0.07)',
+  '--event-bg':    'rgba(255,255,255,0.04)',
+  '--event-hbg':   'rgba(255,255,255,0.07)',
+  '--hev-bg':      'rgba(58,158,104,0.10)',
+  '--hev-hbg':     'rgba(58,158,104,0.15)',
+  '--pill-active': 'rgba(255,255,255,0.08)',
+};
+
+let isDark = false;
+function toggleDarkMode() {
+  isDark = !isDark;
+  const root = document.documentElement;
+  const theme = THEMES.find(t => t.id === activeTheme);
+
+  if (isDark) {
+    // Apply dark vars on top of current theme vars
+    // Keep accent + sunday + holiday colors from the theme, override bg/ink/panel
+    Object.entries(DARK_VARS).forEach(([k, v]) => root.style.setProperty(k, v));
+    // Keep the theme's accent colors
+    if (theme) {
+      ['--accent','--sunday','--holiday'].forEach(k => {
+        root.style.setProperty(k, theme.vars[k]);
+      });
+    }
+  } else {
+    // Restore full theme vars
+    if (theme) {
+      Object.entries(theme.vars).forEach(([k, v]) => root.style.setProperty(k, v));
+    }
+  }
+
+  document.documentElement.classList.toggle('dark-mode', isDark);
+
+  const meta = document.getElementById('themeColorMeta');
+  if (meta) setTimeout(() => meta.content = isDark ? '#000000' : (theme?.vars['--bg'] || '#f5f0e8'), 50);
+}
+
+// ── RAF-BATCHED RENDER ── prevents renderGrid+updatePanel causing two layout passes
+let _rafPending = false;
+function scheduleRender(slideDir) {
+  if (_rafPending) return;
+  _rafPending = true;
+  requestAnimationFrame(() => {
+    renderGrid(slideDir);
+    updatePanel();
+    _rafPending = false;
+  });
+}
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const WDAYS  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// ── THEMES ──
+const THEMES = [
+  {
+    id: 'parchment', label: 'Parchment',
+    vars: {
+      '--bg': '#f5f0e8', '--ink': '#1a1714', '--ink-soft': '#5a5550', '--ink-ghost': '#c2bdb5',
+      '--panel': '#1a1714', '--panel-glow': 'rgba(201,98,47,0.12)',
+      '--accent': '#c9622f', '--accent-soft': 'rgba(201,98,47,0.12)',
+      '--sunday': '#c0392b', '--sunday-soft': 'rgba(192,57,43,0.10)',
+      '--holiday': '#2e7d52', '--holiday-soft': 'rgba(46,125,82,0.12)',
+      '--badge-h-bg': 'rgba(46,125,82,0.20)', '--badge-h-bd': 'rgba(46,125,82,0.35)', '--badge-h-tx': '#7ecfa0',
+      '--badge-s-bg': 'rgba(192,57,43,0.14)', '--badge-s-bd': 'rgba(192,57,43,0.28)', '--badge-s-tx': '#f08080',
+      '--panel-text': '#f5f0e8', '--panel-muted': 'rgba(255,255,255,0.35)', '--panel-ghost': 'rgba(255,255,255,0.13)',
+      '--event-bg': 'rgba(255,255,255,0.06)', '--event-hbg': 'rgba(255,255,255,0.10)',
+      '--hev-bg': 'rgba(46,125,82,0.12)', '--hev-hbg': 'rgba(46,125,82,0.18)',
+      '--pill-active': 'rgba(255,255,255,0.12)',
+    },
+    preview: { left: '#f5f0e8', right: '#1a1714', bar: '#c9622f', dot: '#c0392b' }
+  },
+  {
+    id: 'midnight', label: 'Midnight',
+    vars: {
+      '--bg': '#0f1117', '--ink': '#e8e6f0', '--ink-soft': '#9b98a8', '--ink-ghost': '#3d3b4a',
+      '--panel': '#1e1b2e', '--panel-glow': 'rgba(130,100,220,0.18)',
+      '--accent': '#8b5cf6', '--accent-soft': 'rgba(139,92,246,0.15)',
+      '--sunday': '#f87171', '--sunday-soft': 'rgba(248,113,113,0.10)',
+      '--holiday': '#34d399', '--holiday-soft': 'rgba(52,211,153,0.10)',
+      '--badge-h-bg': 'rgba(52,211,153,0.15)', '--badge-h-bd': 'rgba(52,211,153,0.30)', '--badge-h-tx': '#6ee7b7',
+      '--badge-s-bg': 'rgba(248,113,113,0.14)', '--badge-s-bd': 'rgba(248,113,113,0.28)', '--badge-s-tx': '#fca5a5',
+      '--panel-text': '#e8e6f0', '--panel-muted': 'rgba(232,230,240,0.40)', '--panel-ghost': 'rgba(232,230,240,0.12)',
+      '--event-bg': 'rgba(255,255,255,0.05)', '--event-hbg': 'rgba(255,255,255,0.09)',
+      '--hev-bg': 'rgba(52,211,153,0.10)', '--hev-hbg': 'rgba(52,211,153,0.16)',
+      '--pill-active': 'rgba(255,255,255,0.10)',
+    },
+    preview: { left: '#0f1117', right: '#1e1b2e', bar: '#8b5cf6', dot: '#f87171' }
+  },
+  {
+    id: 'sakura', label: 'Sakura',
+    vars: {
+      '--bg': '#fff0f3', '--ink': '#3d1a24', '--ink-soft': '#8b5a68', '--ink-ghost': '#ddb4bc',
+      '--panel': '#2d0f1a', '--panel-glow': 'rgba(255,105,135,0.18)',
+      '--accent': '#e84393', '--accent-soft': 'rgba(232,67,147,0.12)',
+      '--sunday': '#e84393', '--sunday-soft': 'rgba(232,67,147,0.10)',
+      '--holiday': '#1a7a5e', '--holiday-soft': 'rgba(26,122,94,0.12)',
+      '--badge-h-bg': 'rgba(26,122,94,0.18)', '--badge-h-bd': 'rgba(26,122,94,0.32)', '--badge-h-tx': '#5ecfb2',
+      '--badge-s-bg': 'rgba(232,67,147,0.12)', '--badge-s-bd': 'rgba(232,67,147,0.28)', '--badge-s-tx': '#f472b6',
+      '--panel-text': '#ffe6ed', '--panel-muted': 'rgba(255,230,237,0.40)', '--panel-ghost': 'rgba(255,230,237,0.12)',
+      '--event-bg': 'rgba(255,255,255,0.06)', '--event-hbg': 'rgba(255,255,255,0.10)',
+      '--hev-bg': 'rgba(26,122,94,0.12)', '--hev-hbg': 'rgba(26,122,94,0.18)',
+      '--pill-active': 'rgba(255,255,255,0.12)',
+    },
+    preview: { left: '#fff0f3', right: '#2d0f1a', bar: '#e84393', dot: '#e84393' }
+  },
+  {
+    id: 'ocean', label: 'Ocean',
+    vars: {
+      '--bg': '#e8f4f8', '--ink': '#0d2b3e', '--ink-soft': '#3a6b82', '--ink-ghost': '#9dc5d4',
+      '--panel': '#0a1f2e', '--panel-glow': 'rgba(32,178,200,0.18)',
+      '--accent': '#0ea5e9', '--accent-soft': 'rgba(14,165,233,0.12)',
+      '--sunday': '#ef4444', '--sunday-soft': 'rgba(239,68,68,0.10)',
+      '--holiday': '#0d9488', '--holiday-soft': 'rgba(13,148,136,0.12)',
+      '--badge-h-bg': 'rgba(13,148,136,0.18)', '--badge-h-bd': 'rgba(13,148,136,0.35)', '--badge-h-tx': '#5eead4',
+      '--badge-s-bg': 'rgba(239,68,68,0.14)', '--badge-s-bd': 'rgba(239,68,68,0.28)', '--badge-s-tx': '#fca5a5',
+      '--panel-text': '#e0f2fe', '--panel-muted': 'rgba(224,242,254,0.40)', '--panel-ghost': 'rgba(224,242,254,0.12)',
+      '--event-bg': 'rgba(255,255,255,0.06)', '--event-hbg': 'rgba(255,255,255,0.10)',
+      '--hev-bg': 'rgba(13,148,136,0.12)', '--hev-hbg': 'rgba(13,148,136,0.18)',
+      '--pill-active': 'rgba(255,255,255,0.12)',
+    },
+    preview: { left: '#e8f4f8', right: '#0a1f2e', bar: '#0ea5e9', dot: '#ef4444' }
+  },
+  {
+    id: 'forest', label: 'Forest',
+    vars: {
+      '--bg': '#f0f4ee', '--ink': '#1a2e1a', '--ink-soft': '#4a6647', '--ink-ghost': '#aabea8',
+      '--panel': '#142214', '--panel-glow': 'rgba(74,188,100,0.15)',
+      '--accent': '#3d9e4a', '--accent-soft': 'rgba(61,158,74,0.12)',
+      '--sunday': '#b85c38', '--sunday-soft': 'rgba(184,92,56,0.10)',
+      '--holiday': '#1a7a5e', '--holiday-soft': 'rgba(26,122,94,0.12)',
+      '--badge-h-bg': 'rgba(26,122,94,0.20)', '--badge-h-bd': 'rgba(26,122,94,0.35)', '--badge-h-tx': '#6ee7b7',
+      '--badge-s-bg': 'rgba(184,92,56,0.14)', '--badge-s-bd': 'rgba(184,92,56,0.28)', '--badge-s-tx': '#f6a882',
+      '--panel-text': '#e6f0e6', '--panel-muted': 'rgba(230,240,230,0.40)', '--panel-ghost': 'rgba(230,240,230,0.12)',
+      '--event-bg': 'rgba(255,255,255,0.06)', '--event-hbg': 'rgba(255,255,255,0.10)',
+      '--hev-bg': 'rgba(26,122,94,0.12)', '--hev-hbg': 'rgba(26,122,94,0.18)',
+      '--pill-active': 'rgba(255,255,255,0.12)',
+    },
+    preview: { left: '#f0f4ee', right: '#142214', bar: '#3d9e4a', dot: '#b85c38' }
+  },
+  {
+    id: 'ember', label: 'Ember',
+    vars: {
+      '--bg': '#1c0a00', '--ink': '#fde8d8', '--ink-soft': '#c4876a', '--ink-ghost': '#6b3520',
+      '--panel': '#2e1205', '--panel-glow': 'rgba(255,120,50,0.20)',
+      '--accent': '#ff6b2b', '--accent-soft': 'rgba(255,107,43,0.15)',
+      '--sunday': '#ff4444', '--sunday-soft': 'rgba(255,68,68,0.12)',
+      '--holiday': '#fbbf24', '--holiday-soft': 'rgba(251,191,36,0.12)',
+      '--badge-h-bg': 'rgba(251,191,36,0.15)', '--badge-h-bd': 'rgba(251,191,36,0.30)', '--badge-h-tx': '#fde68a',
+      '--badge-s-bg': 'rgba(255,68,68,0.15)', '--badge-s-bd': 'rgba(255,68,68,0.28)', '--badge-s-tx': '#fca5a5',
+      '--panel-text': '#fde8d8', '--panel-muted': 'rgba(253,232,216,0.40)', '--panel-ghost': 'rgba(253,232,216,0.12)',
+      '--event-bg': 'rgba(255,255,255,0.05)', '--event-hbg': 'rgba(255,255,255,0.09)',
+      '--hev-bg': 'rgba(251,191,36,0.10)', '--hev-hbg': 'rgba(251,191,36,0.16)',
+      '--pill-active': 'rgba(255,255,255,0.10)',
+    },
+    preview: { left: '#1c0a00', right: '#2e1205', bar: '#ff6b2b', dot: '#ff4444' }
+  },
+  {
+    id: 'slate', label: 'Slate',
+    vars: {
+      '--bg': '#f1f5f9', '--ink': '#1e293b', '--ink-soft': '#64748b', '--ink-ghost': '#cbd5e1',
+      '--panel': '#1e293b', '--panel-glow': 'rgba(100,116,139,0.15)',
+      '--accent': '#6366f1', '--accent-soft': 'rgba(99,102,241,0.12)',
+      '--sunday': '#dc2626', '--sunday-soft': 'rgba(220,38,38,0.10)',
+      '--holiday': '#059669', '--holiday-soft': 'rgba(5,150,105,0.12)',
+      '--badge-h-bg': 'rgba(5,150,105,0.18)', '--badge-h-bd': 'rgba(5,150,105,0.32)', '--badge-h-tx': '#6ee7b7',
+      '--badge-s-bg': 'rgba(220,38,38,0.14)', '--badge-s-bd': 'rgba(220,38,38,0.28)', '--badge-s-tx': '#fca5a5',
+      '--panel-text': '#f1f5f9', '--panel-muted': 'rgba(241,245,249,0.40)', '--panel-ghost': 'rgba(241,245,249,0.12)',
+      '--event-bg': 'rgba(255,255,255,0.06)', '--event-hbg': 'rgba(255,255,255,0.10)',
+      '--hev-bg': 'rgba(5,150,105,0.12)', '--hev-hbg': 'rgba(5,150,105,0.18)',
+      '--pill-active': 'rgba(255,255,255,0.12)',
+    },
+    preview: { left: '#f1f5f9', right: '#1e293b', bar: '#6366f1', dot: '#dc2626' }
+  },
+  {
+    id: 'gold', label: 'Gold',
+    vars: {
+      '--bg': '#fefce8', '--ink': '#1c1400', '--ink-soft': '#78620a', '--ink-ghost': '#d4c47a',
+      '--panel': '#1c1400', '--panel-glow': 'rgba(234,179,8,0.20)',
+      '--accent': '#ca8a04', '--accent-soft': 'rgba(202,138,4,0.12)',
+      '--sunday': '#dc2626', '--sunday-soft': 'rgba(220,38,38,0.10)',
+      '--holiday': '#166534', '--holiday-soft': 'rgba(22,101,52,0.12)',
+      '--badge-h-bg': 'rgba(22,101,52,0.18)', '--badge-h-bd': 'rgba(22,101,52,0.32)', '--badge-h-tx': '#86efac',
+      '--badge-s-bg': 'rgba(220,38,38,0.14)', '--badge-s-bd': 'rgba(220,38,38,0.28)', '--badge-s-tx': '#fca5a5',
+      '--panel-text': '#fefce8', '--panel-muted': 'rgba(254,252,232,0.40)', '--panel-ghost': 'rgba(254,252,232,0.12)',
+      '--event-bg': 'rgba(255,255,255,0.06)', '--event-hbg': 'rgba(255,255,255,0.10)',
+      '--hev-bg': 'rgba(22,101,52,0.12)', '--hev-hbg': 'rgba(22,101,52,0.18)',
+      '--pill-active': 'rgba(255,255,255,0.12)',
+    },
+    preview: { left: '#fefce8', right: '#1c1400', bar: '#ca8a04', dot: '#dc2626' }
+  },
+  {
+    id: 'scarlet', label: 'Scarlet',
+    vars: {
+      '--bg': '#fdf0f0', '--ink': '#0a0101', '--ink-soft': '#3a0808', '--ink-ghost': '#b06060',
+      '--panel': '#2d0404', '--panel-glow': 'rgba(45,4,4,0.35)',
+      '--accent': '#3d0606', '--accent-soft': 'rgba(61,6,6,0.12)',
+      '--sunday': '#5a0a0a', '--sunday-soft': 'rgba(90,10,10,0.10)',
+      '--holiday': '#165730', '--holiday-soft': 'rgba(22,87,48,0.12)',
+      '--badge-h-bg': 'rgba(22,87,48,0.18)', '--badge-h-bd': 'rgba(22,87,48,0.35)', '--badge-h-tx': '#3d9965',
+      '--badge-s-bg': 'rgba(90,10,10,0.14)', '--badge-s-bd': 'rgba(90,10,10,0.28)', '--badge-s-tx': '#a85050',
+      '--panel-text': '#fdf0f0', '--panel-muted': 'rgba(253,240,240,0.50)', '--panel-ghost': 'rgba(253,240,240,0.13)',
+      '--event-bg': 'rgba(255,255,255,0.07)', '--event-hbg': 'rgba(255,255,255,0.12)',
+      '--hev-bg': 'rgba(22,87,48,0.12)', '--hev-hbg': 'rgba(22,87,48,0.18)',
+      '--pill-active': 'rgba(255,255,255,0.12)',
+    },
+    preview: { left: '#fdf0f0', right: '#2d0404', bar: '#3d0606', dot: '#165730' }
+  },
+];
+
+let activeTheme = 'parchment';
+
+function buildThemeGrid() {
+  const grid = document.getElementById('themeGrid');
+  grid.innerHTML = '';
+  THEMES.forEach((theme, idx) => {
+    const card = document.createElement('div');
+    card.className = 'theme-card' + (theme.id === activeTheme ? ' active' : '');
+    card.dataset.id = theme.id;
+    // stagger delay baked in as CSS var, used when accordion opens
+    card.style.setProperty('--stagger', `${idx * 45}ms`);
+
+    const p = theme.preview;
+    // Determine if the left (bg) color is dark to pick a readable label text color
+    const hex = p.left.replace('#','');
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+    const labelColor = luminance < 0.45 ? 'rgba(255,255,255,0.75)' : p.right;
+    card.innerHTML = `
+      <div class="theme-preview" style="background:${p.left}">
+        <div class="tp-left">
+          <div class="tp-bar tp-bar-sm" style="background:${p.right};opacity:0.22"></div>
+          <div class="tp-bar tp-bar-lg" style="background:${p.right};opacity:0.13"></div>
+          <div class="tp-dot-row">
+            <div class="tp-dot" style="background:${p.bar};opacity:0.9"></div>
+            <div class="tp-dot" style="background:${p.dot};opacity:0.75"></div>
+            <div class="tp-dot" style="background:${p.bar};opacity:0.5"></div>
+          </div>
+        </div>
+        <div class="tp-right" style="background:${p.right}"></div>
+      </div>
+      <div class="theme-label" style="background:${p.left};color:${labelColor}">${theme.label}</div>`;
+
+    card.addEventListener('click', () => applyTheme(theme.id));
+    grid.appendChild(card);
+  });
+}
+
+function applyTheme(id) {
+  const theme = THEMES.find(t => t.id === id);
+  if (!theme) return;
+  activeTheme = id;
+  const root = document.documentElement;
+  // Apply theme vars first
+  Object.entries(theme.vars).forEach(([k, v]) => root.style.setProperty(k, v));
+  // If dark mode is on, re-apply dark overrides on top
+  if (isDark) {
+    Object.entries(DARK_VARS).forEach(([k, v]) => root.style.setProperty(k, v));
+    ['--accent','--sunday','--holiday'].forEach(k => {
+      root.style.setProperty(k, theme.vars[k]);
+    });
+  }
+  document.querySelectorAll('.theme-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.id === id);
+  });
+  document.getElementById('activeThemeLabel').textContent = theme.label;
+  const meta = document.getElementById('themeColorMeta');
+  if (meta) setTimeout(() => meta.content = isDark ? '#000000' : theme.vars['--bg'], 50);
+}
+
+// ── ACCORDION ──
+function toggleAccordion(rowId) {
+  const row = document.getElementById(rowId);
+  const isNested = row.classList.contains('nested-accordion-row');
+  const isOpen = row.classList.contains('open');
+
+  if (isNested) {
+    // Nested: only close siblings within same parent
+    const parent = row.parentElement;
+    parent.querySelectorAll('.nested-accordion-row.open').forEach(r => r.classList.remove('open'));
+  } else {
+    document.querySelectorAll('.accordion-row.open').forEach(r => r.classList.remove('open'));
+  }
+
+  if (!isOpen) {
+    row.classList.add('open');
+    const cards = row.querySelectorAll('.theme-card');
+    cards.forEach((card, i) => { card.style.transitionDelay = `${i * 45}ms`; });
+  }
+}
+
+// ── ANIMATION STRENGTH ──
+let animStrength = 'medium';
+const ANIM_LEVELS = {
+  low:    { wobble: 'rotate(-2deg) scale(1.06)',  wobbleBig: 'rotate(-3deg) scale(1.1)',  dur: '0.5s' },
+  medium: { wobble: 'rotate(-5deg) scale(1.2)',   wobbleBig: 'rotate(-7deg) scale(1.18)', dur: '0.55s' },
+  high:   { wobble: 'rotate(-8deg) scale(1.28)',  wobbleBig: 'rotate(-11deg) scale(1.26)',dur: '0.65s' },
+};
+
+function setAnimStrength(level) {
+  animStrength = level;
+  document.getElementById('animStrengthLabel').textContent = level.charAt(0).toUpperCase() + level.slice(1);
+
+  // Move pill
+  const pill = document.getElementById('animPill');
+  const idx = ['low','medium','high'].indexOf(level);
+  const stepW = pill.parentElement.offsetWidth / 3;
+  pill.style.transform = `translateX(${idx * stepW}px)`;
+
+  // Update active step
+  document.querySelectorAll('.anim-step').forEach(s => s.classList.toggle('active', s.dataset.level === level));
+
+  // Rewrite wobble keyframes dynamically
+  const l = ANIM_LEVELS[level];
+  const existingStyle = document.getElementById('wobbleDynStyle');
+  if (existingStyle) existingStyle.remove();
+  const style = document.createElement('style');
+  style.id = 'wobbleDynStyle';
+  style.textContent = `
+    @keyframes wobble {
+      0%   { transform: rotate(0deg) scale(1); }
+      15%  { transform: ${l.wobble}; }
+      35%  { transform: rotate(calc(${parseFloat(l.wobble.match(/-?[\d.]+deg/)[0])*-0.7}deg)) scale(${(parseFloat(l.wobble.match(/scale\(([\d.]+)\)/)[1])-1)*0.75+1}); }
+      55%  { transform: rotate(calc(${parseFloat(l.wobble.match(/-?[\d.]+deg/)[0])*0.4}deg)) scale(${(parseFloat(l.wobble.match(/scale\(([\d.]+)\)/)[1])-1)*0.4+1}); }
+      75%  { transform: rotate(calc(${parseFloat(l.wobble.match(/-?[\d.]+deg/)[0])*-0.15}deg)) scale(1.01); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+    @keyframes wobbleBig {
+      0%   { transform: rotate(0deg) scale(1); }
+      12%  { transform: ${l.wobbleBig}; }
+      28%  { transform: rotate(calc(${parseFloat(l.wobbleBig.match(/-?[\d.]+deg/)[0])*-0.72}deg)) scale(${(parseFloat(l.wobbleBig.match(/scale\(([\d.]+)\)/)[1])-1)*0.72+1}); }
+      45%  { transform: rotate(calc(${parseFloat(l.wobbleBig.match(/-?[\d.]+deg/)[0])*0.38}deg)) scale(${(parseFloat(l.wobbleBig.match(/scale\(([\d.]+)\)/)[1])-1)*0.38+1}); }
+      65%  { transform: rotate(calc(${parseFloat(l.wobbleBig.match(/-?[\d.]+deg/)[0])*-0.12}deg)) scale(1.01); }
+      82%  { transform: rotate(0.3deg) scale(1); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .wobble-target:hover { animation: wobble ${l.dur} cubic-bezier(0.36,0.07,0.19,0.97) both; }
+      .wobble-big:hover    { animation: wobbleBig ${l.dur} cubic-bezier(0.36,0.07,0.19,0.97) both; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Init pill position and active state on load
+function initAnimToggle() {
+  document.querySelectorAll('.anim-step').forEach(s => s.classList.toggle('active', s.dataset.level === animStrength));
+  const pill = document.getElementById('animPill');
+  const idx = ['low','medium','high'].indexOf(animStrength);
+  requestAnimationFrame(() => {
+    const stepW = pill.parentElement.offsetWidth / 3;
+    pill.style.transition = 'none';
+    pill.style.transform = `translateX(${idx * stepW}px)`;
+    requestAnimationFrame(() => { pill.style.transition = ''; });
+  });
+}
+
+// ── SETTINGS ──
+// ── SETTINGS SCROLL WATCHER ──
+(function() {
+  let scrollTimer = null;
+  function updateScrollState() {
+    const body = document.getElementById('settingsBody');
+    const panel = body?.closest('.settings-panel');
+    if (!body || !panel) return;
+    const canScroll = body.scrollHeight > body.clientHeight + 4;
+    panel.classList.toggle('can-scroll', canScroll && body.scrollTop < body.scrollHeight - body.clientHeight - 4);
+  }
+  document.getElementById('settingsBody')?.addEventListener('scroll', () => {
+    const body = document.getElementById('settingsBody');
+    body.classList.add('is-scrolling');
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => body.classList.remove('is-scrolling'), 800);
+    updateScrollState();
+  }, { passive: true });
+  // Re-check whenever accordions open/close (content height changes)
+  new MutationObserver(updateScrollState).observe(
+    document.getElementById('settingsBody') || document.body,
+    { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] }
+  );
+  window.updateSettingsScroll = updateScrollState;
+})();
+
+function toggleSettings() {
+  const ov = document.getElementById('settingsOverlay');
+  const gb = document.getElementById('gearBtn');
+  const isOpen = ov.classList.contains('open');
+  if (isOpen) { closeSettings(); }
+  else {
+    ov.classList.add('open'); gb.classList.add('open');
+    requestAnimationFrame(() => window.updateSettingsScroll?.());
+  }
+}
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('open');
+  document.getElementById('gearBtn').classList.remove('open');
+}
+
+// ── INDIA HOLIDAYS 2025–2027 ──
+const IH_RAW = [
+  ['2025-0-1','nat',"New Year's Day"],['2025-0-14','rel',"Makar Sankranti / Pongal"],
+  ['2025-0-23','nat',"Netaji Subhas Chandra Bose Jayanti"],['2025-0-26','nat',"Republic Day"],
+  ['2025-1-2','rel',"Milad-un-Nabi (Eid-e-Milad)"],['2025-1-26','rel',"Guru Ravidas Jayanti"],
+  ['2025-2-13','rel',"Holika Dahan"],['2025-2-14','rel',"Maha Shivaratri"],['2025-2-14','rel',"Holi"],
+  ['2025-3-6','rel',"Ram Navami"],['2025-3-10','rel',"Mahavir Jayanti"],
+  ['2025-3-14','nat',"Dr. Ambedkar Jayanti"],['2025-3-18','rel',"Good Friday"],
+  ['2025-3-31','rel',"Eid ul-Fitr (Ramzan)"],['2025-4-14','rel',"Vaisakhi"],
+  ['2025-4-18','rel',"Buddha Purnima"],['2025-5-7','rel',"Eid ul-Adha (Bakrid)"],
+  ['2025-6-6','rel',"Muharram"],['2025-7-9','rel',"Raksha Bandhan"],
+  ['2025-7-15','nat',"Independence Day"],['2025-7-16','rel',"Parsi New Year"],
+  ['2025-8-16','rel',"Janmashtami"],['2025-8-5','rel',"Milad-un-Nabi"],
+  ['2025-9-2','nat',"Gandhi Jayanti"],['2025-9-20','rel',"Dussehra (Vijayadashami)"],
+  ['2025-10-1','rel',"Naraka Chaturdashi"],['2025-10-2','rel',"Diwali (Lakshmi Puja)"],
+  ['2025-10-3','rel',"Govardhan Puja"],['2025-10-4','rel',"Bhai Dooj"],
+  ['2025-10-5','rel',"Chhath Puja"],['2025-10-15','rel',"Guru Nanak Jayanti"],
+  ['2025-11-25','rel',"Christmas Day"],
+  ['2026-0-1','nat',"New Year's Day"],['2026-0-14','rel',"Makar Sankranti / Pongal"],
+  ['2026-0-23','nat',"Netaji Subhas Chandra Bose Jayanti"],['2026-0-26','nat',"Republic Day"],
+  ['2026-1-15','rel',"Milad-un-Nabi (Eid-e-Milad)"],['2026-2-3','rel',"Maha Shivaratri"],
+  ['2026-2-10','rel',"Holika Dahan"],['2026-2-11','rel',"Holi"],
+  ['2026-2-20','rel',"Eid ul-Fitr (Ramzan Eid)"],['2026-2-21','rel',"Eid ul-Fitr 2nd Day"],
+  ['2026-3-2','rel',"Ram Navami"],['2026-3-3','rel',"Good Friday"],
+  ['2026-3-14','nat',"Dr. Ambedkar Jayanti"],['2026-3-14','rel',"Mahavir Jayanti"],
+  ['2026-4-7','rel',"Buddha Purnima"],['2026-4-28','rel',"Eid ul-Adha (Bakrid)"],
+  ['2026-4-29','rel',"Eid ul-Adha 2nd Day"],['2026-5-26','rel',"Muharram (Islamic New Year)"],
+  ['2026-7-15','nat',"Independence Day"],['2026-7-28','rel',"Raksha Bandhan"],
+  ['2026-8-5','rel',"Milad-un-Nabi"],['2026-8-18','rel',"Janmashtami"],
+  ['2026-9-2','nat',"Gandhi Jayanti"],['2026-9-10','rel',"Dussehra (Vijayadashami)"],
+  ['2026-9-19','rel',"Naraka Chaturdashi"],['2026-9-20','rel',"Diwali (Lakshmi Puja)"],
+  ['2026-9-21','rel',"Govardhan Puja"],['2026-9-22','rel',"Bhai Dooj"],
+  ['2026-10-4','rel',"Guru Nanak Jayanti"],['2026-11-24','rel',"Christmas Eve"],
+  ['2026-11-25','rel',"Christmas Day"],
+  ['2027-0-1','nat',"New Year's Day"],['2027-0-14','rel',"Makar Sankranti / Pongal"],
+  ['2027-0-23','nat',"Netaji Subhas Chandra Bose Jayanti"],['2027-0-26','nat',"Republic Day"],
+  ['2027-1-4','rel',"Milad-un-Nabi (Eid-e-Milad)"],['2027-2-1','rel',"Maha Shivaratri"],
+  ['2027-2-22','rel',"Holika Dahan"],['2027-2-23','rel',"Holi"],
+  ['2027-3-10','rel',"Eid ul-Fitr (Ramzan Eid)"],['2027-3-14','nat',"Dr. Ambedkar Jayanti"],
+  ['2027-3-17','rel',"Mahavir Jayanti"],['2027-3-23','rel',"Ram Navami"],
+  ['2027-3-26','rel',"Good Friday"],['2027-4-18','rel',"Eid ul-Adha (Bakrid)"],
+  ['2027-4-27','rel',"Buddha Purnima"],['2027-7-15','nat',"Independence Day"],
+  ['2027-8-7','rel',"Janmashtami"],['2027-9-2','nat',"Gandhi Jayanti"],
+  ['2027-9-29','rel',"Dussehra (Vijayadashami)"],['2027-10-5','rel',"Diwali (Lakshmi Puja)"],
+  ['2027-10-24','rel',"Guru Nanak Jayanti"],['2027-11-25','rel',"Christmas Day"],
+];
+
+const IH = {};
+IH_RAW.forEach(([key, t, n]) => { if (!IH[key]) IH[key] = []; IH[key].push({ n, t }); });
+
+function getHolidays(y, m, d) { return IH[`${y}-${m}-${d}`] || null; }
+
+const now = new Date();
+let view = { year: now.getFullYear(), month: now.getMonth() };
+let selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+let userEvents = {};
+
+function dateKey(d) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
+
+function renderGrid(slideDir) {
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  DAYS.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'day-label' + (i === 0 ? ' sun-label' : '');
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay    = new Date(view.year, view.month, 1).getDay();
+  const daysInMonth = new Date(view.year, view.month+1, 0).getDate();
+  const daysInPrev  = new Date(view.year, view.month, 0).getDate();
+  const total       = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  const dataRows    = total / 7;
+  grid.style.gridTemplateRows = `auto repeat(${dataRows}, 1fr)`;
+
+  for (let i = 0; i < total; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    let d, m, y, isOther = false;
+    if (i < firstDay) {
+      d = daysInPrev - firstDay + 1 + i; m = view.month - 1; y = view.year; isOther = true;
+    } else if (i - firstDay >= daysInMonth) {
+      d = i - firstDay - daysInMonth + 1; m = view.month + 1; y = view.year; isOther = true;
+    } else {
+      d = i - firstDay + 1; m = view.month; y = view.year;
+    }
+    if (m < 0)  { m = 11; y--; }
+    if (m > 11) { m = 0;  y++; }
+
+    const isSun    = (i % 7 === 0);
+    const holidays = getHolidays(y, m, d);
+    const isToday  = d === now.getDate() && m === now.getMonth() && y === now.getFullYear();
+    const isSel    = d === selectedDate.getDate() && m === selectedDate.getMonth() && y === selectedDate.getFullYear();
+    const key      = `${y}-${m}-${d}`;
+
+    const span = document.createElement('span');
+    span.textContent = d;
+
+    if (isOther)              cell.classList.add('other-month');
+    if (isSun)                cell.classList.add('is-sunday');
+    if (holidays && !isOther) cell.classList.add('is-holiday');
+    if (isToday)              cell.classList.add('today');
+    if (isSel)                cell.classList.add('selected');
+    if (userEvents[key]?.length) cell.classList.add('has-event');
+
+    // Only animate cells in on month change — NOT on date tap (that causes the flicker)
+    if (slideDir) {
+      cell.classList.add('animate-in');
+      cell.style.animationDelay = `${i * 0.011}s`;
+    }
+    cell.appendChild(span);
+    cell.addEventListener('click', (e) => selectDate(new Date(y, m, d), e.currentTarget));
+    grid.appendChild(cell);
+  }
+
+  const mt = document.getElementById('monthTitle');
+  mt.style.animation = 'none'; mt.offsetHeight; mt.style.animation = '';
+  mt.textContent = MONTHS[view.month];
+  document.getElementById('yearTag').textContent = view.year;
+
+  // Show pulse on home button when not on current month
+  const homeBtn = document.getElementById('homeBtn');
+  const isCurrentMonth = view.year === now.getFullYear() && view.month === now.getMonth();
+  homeBtn.classList.toggle('away', !isCurrentMonth);
+
+  // Apply slide direction class
+  if (slideDir) {
+    grid.classList.add(slideDir === 'right' ? 'slide-in-right' : 'slide-in-left');
+    grid.addEventListener('animationend', () => {
+      grid.classList.remove('slide-in-right', 'slide-in-left');
+    }, { once: true });
+  }
+}
+
+function triggerRipple(cell) {
+  const rect = cell.getBoundingClientRect();
+  const cx   = rect.left + rect.width  / 2;
+  const cy   = rect.top  + rect.height / 2;
+  const size = rect.width * 0.85; // smaller — was 1.1
+
+  const rip = document.createElement('div');
+  rip.style.cssText = `
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    width:  ${size}px;
+    height: ${size}px;
+    left:   ${cx - size / 2}px;
+    top:    ${cy - size / 2}px;
+    background: var(--accent);
+    transform: scale(0);
+    opacity: 0.22;
+    transition: none;
+  `;
+
+  if (cell.classList.contains('is-holiday')) rip.style.background = 'var(--holiday)';
+  else if (cell.classList.contains('is-sunday')) rip.style.background = 'var(--sunday)';
+
+  document.body.appendChild(rip);
+
+  rip.getBoundingClientRect();
+  rip.style.transition = 'transform 0.42s cubic-bezier(0.22,1,0.36,1), opacity 0.42s cubic-bezier(0.22,1,0.36,1)';
+  rip.style.transform  = 'scale(2)'; // was scale(3)
+  rip.style.opacity    = '0';
+
+  setTimeout(() => rip.remove(), 450);
+}
+
+function selectDate(date, cell) {
+  selectedDate = date;
+  if (cell) triggerRipple(cell);
+
+  // Update selected class in-place — no DOM rebuild, no flicker
+  document.querySelectorAll('.day-cell.selected').forEach(c => c.classList.remove('selected'));
+  if (cell) cell.classList.add('selected');
+
+  // Only update the right panel, not the entire grid
+  requestAnimationFrame(() => updatePanel());
+}
+
+function updateProgress() {
+  const d        = selectedDate;
+  const day      = d.getDate();
+  const total    = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  const pct      = (day / total) * 100;
+  document.getElementById('monthProgressLabel').textContent = `Day ${day} of ${total}`;
+  // Use rAF so the transition fires after the element is painted
+  requestAnimationFrame(() => {
+    document.getElementById('monthProgressFill').style.width = pct + '%';
+  });
+}
+
+function updateComingUp() {
+  const d      = selectedDate;
+  const year   = d.getFullYear();
+  const month  = d.getMonth();
+  const today  = d.getDate();
+  const total  = new Date(year, month + 1, 0).getDate();
+  const el     = document.getElementById('comingUp');
+
+  // Scan forward from tomorrow to end of month
+  let found = null;
+  for (let day = today + 1; day <= total; day++) {
+    const holidays = getHolidays(year, month, day);
+    if (holidays && holidays.length) {
+      const daysAway = day - today;
+      found = { name: holidays[0].n, day, daysAway };
+      break;
+    }
+  }
+
+  if (!found) { el.innerHTML = ''; return; }
+
+  const when = found.daysAway === 1 ? 'tomorrow'
+             : found.daysAway <= 6  ? `in ${found.daysAway} days`
+             : `on the ${found.day}${ordinal(found.day)}`;
+
+  el.innerHTML = `
+    <div class="coming-up-inner">
+      <div class="coming-up-dot"></div>
+      <div class="coming-up-text">Coming up <strong>${found.name}</strong> ${when}</div>
+    </div>`;
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return s[(v-20)%10] || s[v] || s[0];
+}
+
+function updatePanel() {
+  updateProgress();
+  updateComingUp();
+  const d = selectedDate;
+  const numEl  = document.getElementById('selDayNum');
+  const nameEl = document.getElementById('selDayName');
+
+  // Smooth cross-fade on date change
+  numEl.classList.add('switching');
+  nameEl.classList.add('switching');
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      numEl.textContent  = d.getDate();
+      nameEl.textContent = `${WDAYS[d.getDay()]} · ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+      numEl.classList.remove('switching');
+      nameEl.classList.remove('switching');
+    }, 80);
+  });
+
+  const ba = document.getElementById('badgeArea');
+  ba.innerHTML = '';
+  const holidays = getHolidays(d.getFullYear(), d.getMonth(), d.getDate());
+  if (holidays) {
+    const b = document.createElement('div');
+    b.className = 'holiday-badge';
+    b.textContent = holidays.length > 1 ? `${holidays[0].n} +${holidays.length - 1} more` : holidays[0].n;
+    ba.appendChild(b);
+  }
+  if (d.getDay() === 0) {
+    const s = document.createElement('div');
+    s.className = 'sunday-badge';
+    s.textContent = 'Weekly Off — Sunday';
+    ba.appendChild(s);
+  }
+  renderEvents();
+}
+
+let openEventMenu = null;
+
+function closeAllEventMenus() {
+  if (openEventMenu) {
+    openEventMenu.classList.remove('open');
+    openEventMenu.closest('.event-dots-btn')?.classList.remove('active');
+    openEventMenu = null;
+  }
+}
+
+document.addEventListener('click', e => {
+  if (openEventMenu && !e.target.closest('.event-dots-btn') && !e.target.closest('.event-menu')) {
+    closeAllEventMenus();
+  }
+});
+
+function toggleEventMenu(btn, menu) {
+  if (openEventMenu && openEventMenu !== menu) closeAllEventMenus();
+  const isOpen = menu.classList.contains('open');
+  closeAllEventMenus();
+  if (!isOpen) {
+    menu.classList.add('open');
+    btn.classList.add('active');
+    openEventMenu = menu;
+  }
+}
+
+function deleteEvent(key, idx) {
+  const wrap = document.querySelector(`.event-item-wrap[data-key="${CSS.escape(key)}"][data-idx="${idx}"]`);
+  closeAllEventMenus();
+  const doDelete = () => {
+    userEvents[key].splice(idx, 1);
+    if (!userEvents[key].length) delete userEvents[key];
+    requestAnimationFrame(() => { renderGrid(); renderEvents(); });
+  };
+  if (wrap) {
+    wrap.classList.add('deleting');
+    wrap.addEventListener('animationend', doDelete, { once: true });
+  } else { doDelete(); }
+}
+
+function editEvent(key, idx) {
+  closeAllEventMenus();
+  const ev = userEvents[key][idx];
+  const nameInput = document.getElementById('eventNameInput');
+  const timeInput = document.getElementById('eventTimeInput');
+  nameInput.value = ev.name;
+  timeInput.value = ev.time;
+
+  // Swap save button to update mode
+  const btn = document.getElementById('modalSaveBtn');
+  btn.textContent = 'Update';
+  btn.onclick = () => {
+    const name = nameInput.value.trim();
+    const time = timeInput.value;
+    if (!name || !time) return;
+    userEvents[key][idx] = { name, time };
+    btn.textContent = 'Add Event';
+    btn.onclick = saveEvent;
+    closeModal(); requestAnimationFrame(() => { renderGrid(); renderEvents(); });
+  };
+  openModal();
+}
+
+function renderEvents() {
+  const list = document.getElementById('eventsList');
+  list.innerHTML = '';
+  const d = selectedDate;
+  const key = dateKey(d);
+  const holidays = getHolidays(d.getFullYear(), d.getMonth(), d.getDate());
+  const items = [];
+  if (holidays) holidays.forEach(h => items.push({ isHoliday: true, name: h.n, htype: h.t }));
+  (userEvents[key] || []).forEach((ev, i) => items.push({ isHoliday: false, idx: i, ...ev }));
+
+  if (!items.length) {
+    list.innerHTML = `<div class="no-events">
+      <svg width="34" height="34" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.2">
+        <rect x="4" y="6" width="28" height="26" rx="5"/>
+        <line x1="4" y1="14" x2="32" y2="14"/>
+        <line x1="12" y1="2" x2="12" y2="10"/>
+        <line x1="24" y1="2" x2="24" y2="10"/>
+        <line x1="12" y1="22" x2="24" y2="22"/>
+      </svg><p>No events today</p></div>`;
+    return;
+  }
+
+  items.forEach((ev, i) => {
+    if (ev.isHoliday) {
+      const item = document.createElement('div');
+      item.className = 'event-item holiday-event';
+      item.style.animationDelay = `${i * 0.06}s`;
+      const labels = { nat:'National Holiday', rel:'Festival / Religious', reg:'Regional Holiday' };
+      item.innerHTML = `<div class="event-type ${ev.htype}">${labels[ev.htype]||'Holiday'}</div><div class="event-name">${ev.name}</div>`;
+      list.appendChild(item);
+    } else {
+      const wrap = document.createElement('div');
+      wrap.className = 'event-item-wrap';
+      wrap.dataset.key = key;
+      wrap.dataset.idx = ev.idx;
+
+      // Three-dot button
+      const dotsBtn = document.createElement('button');
+      dotsBtn.className = 'event-dots-btn';
+      dotsBtn.style.animationDelay = `${i * 0.06}s`;
+      dotsBtn.innerHTML = `<svg width="3" height="14" viewBox="0 0 3 14" fill="currentColor">
+        <circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="7" r="1.5"/><circle cx="1.5" cy="12.5" r="1.5"/>
+      </svg>`;
+
+      // Dropdown menu
+      const menu = document.createElement('div');
+      menu.className = 'event-menu';
+      menu.innerHTML = `
+        <button class="event-menu-item edit-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <button class="event-menu-item delete delete-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Delete
+        </button>`;
+
+      menu.querySelector('.edit-item').addEventListener('click', () => editEvent(key, ev.idx));
+      menu.querySelector('.delete-item').addEventListener('click', () => deleteEvent(key, ev.idx));
+      dotsBtn.addEventListener('click', e => { e.stopPropagation(); toggleEventMenu(dotsBtn, menu); });
+      dotsBtn.appendChild(menu);
+
+      // Event card
+      const item = document.createElement('div');
+      item.className = 'event-item';
+      item.style.animationDelay = `${i * 0.06}s`;
+      const [h, min] = ev.time.split(':');
+      const hNum = parseInt(h), ampm = hNum >= 12 ? 'PM' : 'AM', h12 = hNum % 12 || 12;
+      item.innerHTML = `<div class="event-time">${h12}:${min} ${ampm}</div><div class="event-name">${ev.name}</div>`;
+
+      wrap.appendChild(item);
+      wrap.appendChild(dotsBtn);
+      list.appendChild(wrap);
+    }
+  });
+}
+
+let swipeLocked = false;
+
+function changeMonth(dir) {
+  if (swipeLocked) return;
+  swipeLocked = true;
+
+  const grid = document.getElementById('calGrid');
+  const outClass = dir > 0 ? 'slide-out-left' : 'slide-out-right';
+  const inDir    = dir > 0 ? 'right' : 'left';
+
+  grid.classList.add(outClass);
+  setTimeout(() => {
+    grid.classList.remove(outClass);
+    view.month += dir;
+    if (view.month < 0)  { view.month = 11; view.year--; }
+    if (view.month > 11) { view.month = 0;  view.year++; }
+    requestAnimationFrame(() => {
+      renderGrid(inDir);
+      updatePanel();
+    });
+    swipeLocked = false;
+  }, 210);
+}
+
+// ── MONTH PICKER ──
+let monthPickerOpen = false;
+
+function toggleMonthPicker() {
+  monthPickerOpen ? closeMonthPicker() : openMonthPicker();
+}
+
+function openMonthPicker() {
+  monthPickerOpen = true;
+  const picker = document.getElementById('monthPicker');
+  const grid   = document.getElementById('monthPickerGrid');
+  grid.innerHTML = '';
+
+  MONTHS.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'month-pill';
+    if (i === view.month)         btn.classList.add('active');
+    if (i === now.getMonth() && view.year === now.getFullYear())
+                                  btn.classList.add('current-month');
+    btn.textContent = name.slice(0, 3);
+    btn.style.setProperty('--mp-stagger', `${i * 14}ms`);
+    btn.addEventListener('click', () => selectMonth(i));
+    grid.appendChild(btn);
+  });
+
+  requestAnimationFrame(() => picker.classList.add('open'));
+}
+
+function closeMonthPicker() {
+  monthPickerOpen = false;
+  document.getElementById('monthPicker').classList.remove('open');
+}
+
+function selectMonth(monthIdx) {
+  view.month = monthIdx;
+  closeMonthPicker();
+  scheduleRender();
+}
+
+// Close month picker on outside click
+document.addEventListener('click', e => {
+  if (monthPickerOpen
+    && !e.target.closest('#monthPicker')
+    && !e.target.closest('#monthTitleWrap')) {
+    closeMonthPicker();
+  }
+});
+
+// Also close on Escape
+
+const YEAR_MIN = 1950, YEAR_MAX = 2100;
+let pickerYear = view.year;
+
+function openYearPicker() {
+  pickerYear = view.year;
+  const wheel = document.getElementById('yearWheel');
+  wheel.innerHTML = '';
+
+  // Top spacer
+  const topSpacer = document.createElement('div');
+  topSpacer.className = 'year-spacer';
+  wheel.appendChild(topSpacer);
+
+  for (let y = YEAR_MIN; y <= YEAR_MAX; y++) {
+    const item = document.createElement('div');
+    item.className = 'year-item' + (y === pickerYear ? ' active' : '');
+    item.textContent = y;
+    item.dataset.year = y;
+    item.addEventListener('click', () => {
+      pickerYear = y;
+      updateWheelActive();
+    });
+    wheel.appendChild(item);
+  }
+
+  // Bottom spacer
+  const botSpacer = document.createElement('div');
+  botSpacer.className = 'year-spacer';
+  wheel.appendChild(botSpacer);
+
+  // Scroll to current year instantly
+  requestAnimationFrame(() => {
+    const idx = pickerYear - YEAR_MIN;
+    wheel.scrollTop = idx * 44;
+    updateWheelActive();
+  });
+
+  // Update active on scroll
+  wheel.onscroll = () => {
+    const idx = Math.round(wheel.scrollTop / 44);
+    pickerYear = YEAR_MIN + Math.max(0, Math.min(YEAR_MAX - YEAR_MIN, idx));
+    updateWheelActive();
+  };
+
+  document.getElementById('yearPickerOverlay').classList.add('open');
+}
+
+function updateWheelActive() {
+  const wheel = document.getElementById('yearWheel');
+  wheel.querySelectorAll('.year-item').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.year) === pickerYear);
+  });
+}
+
+function closeYearPicker() {
+  document.getElementById('yearPickerOverlay').classList.remove('open');
+}
+
+function confirmYear() {
+  view.year = pickerYear;
+  closeYearPicker();
+  scheduleRender();
+}
+
+function onYearOverlayClick(e) {
+  if (e.target === document.getElementById('yearPickerOverlay')) closeYearPicker();
+}
+
+function goToday() {
+  view.year = now.getFullYear(); view.month = now.getMonth();
+  selectDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+}
+
+
+
+document.querySelectorAll('.pill').forEach(pill => {
+  pill.addEventListener('click', function() {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('eventNameInput').focus(), 200);
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('eventNameInput').value = '';
+  document.getElementById('eventTimeInput').value = '';
+  const btn = document.getElementById('modalSaveBtn');
+  btn.textContent = 'Add Event';
+  btn.onclick = saveEvent;
+}
+function saveEvent() {
+  const name = document.getElementById('eventNameInput').value.trim();
+  const time = document.getElementById('eventTimeInput').value || '09:00';
+  if (!name) return;
+  const key = dateKey(selectedDate);
+  if (!userEvents[key]) userEvents[key] = [];
+  userEvents[key].push({ name, time });
+  closeModal();
+  requestAnimationFrame(() => { renderGrid(); renderEvents(); });
+}
+
+document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeSettings(); closeYearPicker(); closeMonthPicker(); }
+  if (e.key === 'ArrowLeft')  changeMonth(-1);
+  if (e.key === 'ArrowRight') changeMonth(1);
+});
+
+// ── FETCH HOLIDAYS VIA CLAUDE API ──
+async function fetchHolidays() {
+  const btn    = document.getElementById('updateBtn');
+  const icon   = document.getElementById('updateIcon');
+  const label  = document.getElementById('updateLabel');
+  const status = document.getElementById('updateStatus');
+
+  const monthName = MONTHS[view.month];
+  const year      = view.year;
+
+  btn.disabled = true;
+  icon.classList.add('spin');
+  label.textContent = 'Searching…';
+  status.textContent = '';
+  status.classList.remove('visible');
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: `You are a holiday data assistant. The user will ask for Indian holidays in a specific month and year.
+Search the web and return ONLY a valid JSON array, no markdown, no explanation, nothing else.
+Each item: { "day": <number>, "name": "<holiday name>", "type": "<nat|rel|reg>" }
+nat = national holiday, rel = festival/religious, reg = regional.
+If no holidays found, return [].`,
+        messages: [{
+          role: 'user',
+          content: `List all Indian public holidays and major festivals in ${monthName} ${year}. Return only the JSON array.`
+        }]
+      })
+    });
+
+    const data = await response.json();
+
+    // Extract text from all content blocks (web_search returns multiple blocks)
+    const text = (data.content || [])
+      .map(b => b.type === 'text' ? b.text : '')
+      .join('');
+
+    // Parse JSON — strip any accidental markdown fences
+    const clean = text.replace(/```json|```/gi, '').trim();
+    const start = clean.indexOf('[');
+    const end   = clean.lastIndexOf(']');
+    if (start === -1 || end === -1) throw new Error('No JSON array found');
+    const holidays = JSON.parse(clean.slice(start, end + 1));
+
+    if (!Array.isArray(holidays) || holidays.length === 0) {
+      setStatus('No holidays found for this month.', status);
+      return;
+    }
+
+    // Merge into IH map
+    let added = 0;
+    holidays.forEach(h => {
+      if (!h.day || !h.name) return;
+      const key = `${year}-${view.month}-${h.day}`;
+      if (!IH[key]) IH[key] = [];
+      const type = ['nat','rel','reg'].includes(h.type) ? h.type : 'rel';
+      // Avoid duplicates
+      if (!IH[key].some(e => e.n === h.name)) {
+        IH[key].push({ n: h.name, t: type });
+        added++;
+      }
+    });
+
+    scheduleRender();
+    setStatus(`${added} holiday${added !== 1 ? 's' : ''} added for ${monthName}.`, status);
+
+  } catch (err) {
+    setStatus('Could not fetch — try again.', status);
+  } finally {
+    btn.disabled = false;
+    icon.classList.remove('spin');
+    label.textContent = 'Update holidays';
+  }
+}
+
+function setStatus(msg, el) {
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 4000);
+}
+
+// ── WOBBLE (desktop pointer only) ──
+if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  const wobbleSelectors = [
+    '.update-btn', '.pill', '.year-tag', '.home-btn',
+    '.event-dots-btn', '.event-menu-item',
+    '.year-picker-confirm', '.year-picker-cancel',
+    '.btn-cancel', '.theme-card', '.dark-toggle'
+  ];
+  wobbleSelectors.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => el.classList.add('wobble-target'));
+  });
+
+  const wobbleBigSelectors = [
+    '.arrow-btn', '.today-btn', '.gear-btn', '.add-btn', '.btn-add', '#monthTitleWrap'
+  ];
+  wobbleBigSelectors.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => el.classList.add('wobble-big'));
+  });
+}
+
+// ── FONTS ──
+const FONTS = [
+  {
+    id: 'default', label: 'Default',
+    preview: 'Cal.',
+    body: "'DM Sans', sans-serif",
+    display: "'DM Serif Display', serif",
+    previewStyle: "'DM Serif Display', serif"
+  },
+  {
+    id: 'dotmatrix', label: 'Dot Matrix',
+    preview: 'Cal.',
+    body: "'Share Tech Mono', monospace",
+    display: "'Share Tech Mono', monospace",
+    previewStyle: "'Share Tech Mono', monospace"
+  },
+  {
+    id: 'italic-bold', label: 'Italic Bold',
+    preview: 'Cal.',
+    body: "'Playfair Display', serif",
+    display: "'Playfair Display', serif",
+    previewStyle: "'Playfair Display', serif",
+    previewExtra: 'font-style:italic; font-weight:700'
+  },
+  {
+    id: 'grotesk', label: 'Space Grotesk',
+    preview: 'Cal.',
+    body: "'Space Grotesk', sans-serif",
+    display: "'Space Grotesk', sans-serif",
+    previewStyle: "'Space Grotesk', sans-serif"
+  },
+  {
+    id: 'cormorant', label: 'Cormorant',
+    preview: 'Cal.',
+    body: "'Cormorant Garamond', serif",
+    display: "'Cormorant Garamond', serif",
+    previewStyle: "'Cormorant Garamond', serif",
+    previewExtra: 'font-size:20px; font-weight:300; letter-spacing:0.06em'
+  },
+  {
+    id: 'syne', label: 'Syne',
+    preview: 'Cal.',
+    body: "'Syne', sans-serif",
+    display: "'Syne', sans-serif",
+    previewStyle: "'Syne', sans-serif",
+    previewExtra: 'font-weight:700; letter-spacing:-0.02em'
+  },
+];
+
+let activeFont = 'default';
+
+function buildFontList() {
+  const list = document.getElementById('fontList');
+  list.innerHTML = '';
+  FONTS.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'font-item' + (f.id === activeFont ? ' active' : '');
+    btn.dataset.id = f.id;
+    btn.innerHTML = `
+      <div class="font-item-left">
+        <div class="font-item-name">${f.label}</div>
+        <div class="font-item-preview" style="font-family:${f.previewStyle};${f.previewExtra||''}">${f.preview}</div>
+      </div>
+      <div class="font-check">✓</div>`;
+    btn.addEventListener('click', () => applyFont(f.id));
+    list.appendChild(btn);
+  });
+}
+
+function applyFont(id) {
+  const f = FONTS.find(x => x.id === id);
+  if (!f) return;
+  activeFont = id;
+  const root = document.documentElement;
+  root.style.setProperty('--font-body', f.body);
+  root.style.setProperty('--font-display', f.display);
+  document.getElementById('activeFontLabel').textContent = f.label;
+  document.querySelectorAll('.font-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
+}
+
+buildFontList();
+buildThemeGrid();
+initAnimToggle();
+scheduleRender();
+</script>
+</body>
+</html>
